@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nothing here — QuietBroadcast</title>
+<meta name="description" content="That page isn't part of QuietBroadcast.">
+<meta name="robots" content="noindex, follow">
+<meta name="theme-color" content="#111110">
+<meta name="color-scheme" content="dark light">
+
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>
+:root{
+  --bg:#111110; --fg:#ece9e2; --dim:#9a968e; --faint:#5e5b55; --line:#28271f;
+  --accent:#e02b1d;
+  --glow:120,120,120;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,"Times New Roman",serif;
+}
+:root[data-theme="light"]{
+  --bg:#efece6; --fg:#1a1916; --dim:#5c5952; --faint:#9c988f; --line:#d9d5cc;
+}
+*{box-sizing:border-box}
+html{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--fg); font-family:var(--serif);
+  font-size:17px; line-height:1.55; min-height:100%;
+  display:flex; flex-direction:column; padding:0 clamp(20px,5vw,72px);
+  position:relative; overflow-x:hidden; -webkit-font-smoothing:antialiased;
+}
+
+.ambient{position:absolute; inset:0; pointer-events:none; z-index:0; overflow:hidden}
+.ambient i{position:absolute; border-radius:50%; filter:blur(70px); opacity:.34;
+  background:rgb(var(--glow)); width:58vmax; height:58vmax; left:-16vmax; top:-14vmax;
+  animation:drift 42s ease-in-out infinite alternate}
+@keyframes drift{from{transform:translate(0,0)}to{transform:translate(8vmax,6vmax)}}
+:root[data-theme="light"] .ambient i{opacity:.24}
+.grain{
+  position:fixed; inset:-50%; pointer-events:none; z-index:1; opacity:.045;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain 700ms steps(2,end) infinite;
+}
+@keyframes grain{0%{transform:translate(0,0)}50%{transform:translate(-3%,2%)}100%{transform:translate(2%,-1%)}}
+@media (prefers-reduced-motion:reduce){.grain,.ambient i,.lamp{animation:none}}
+
+@view-transition{navigation:auto}
+.top{view-transition-name:masthead}
+::view-transition-old(root){animation-duration:.28s;animation-timing-function:ease}
+::view-transition-new(root){animation-duration:.38s;animation-timing-function:ease}
+::view-transition-group(masthead){animation-duration:.34s}
+@supports not (view-transition-name:none){
+  .wrap{animation:pagein .42s ease both}
+  @keyframes pagein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+}
+@media (prefers-reduced-motion:reduce){
+  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
+  .wrap{animation:none}
+}
+
+.wrap{position:relative; z-index:2; width:100%; flex:1; display:flex; flex-direction:column}
+.top{display:flex; justify-content:space-between; align-items:baseline; gap:16px;
+  padding:26px 0 0; font-size:16px; color:var(--dim)}
+.top .name{color:var(--fg)}
+.top a{color:var(--dim); text-decoration:none; font-style:italic; transition:color .2s}
+.top a:hover{color:var(--fg)}
+.lamp{display:inline-block; width:7px; height:7px; border-radius:50%;
+  background:var(--accent); margin-right:10px; vertical-align:2px;
+  animation:pulse 3.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+main{flex:1; display:flex; flex-direction:column; justify-content:center;
+  max-width:1120px; margin:0 auto; width:100%; padding:clamp(28px,6vh,72px) 0}
+h1{font-weight:400; font-size:clamp(40px,7vw,86px); line-height:1.02;
+  letter-spacing:-.03em; margin:0; text-wrap:balance}
+.said{font-style:italic; color:var(--dim); margin:0 0 16px; font-size:17px}
+p.body{color:var(--dim); margin:26px 0 0; max-width:44ch}
+p.body a{color:var(--fg); text-decoration:underline; text-decoration-thickness:1px;
+  text-underline-offset:3px; text-decoration-color:var(--faint); transition:.2s}
+p.body a:hover{text-decoration-color:var(--fg)}
+
+footer{border-top:1px solid var(--line); padding:16px 0 30px; font-size:15px;
+  color:var(--dim); display:flex; justify-content:space-between; gap:16px;
+  flex-wrap:wrap; align-items:baseline; font-style:italic}
+footer button{font:inherit; color:var(--faint); background:none; border:0; padding:0;
+  cursor:pointer; transition:color .2s; font-style:normal}
+footer button:hover{color:var(--fg)}
+</style>
+</head>
+<body>
+<div class="ambient"><i></i></div>
+<div class="grain"></div>
+
+<div class="wrap">
+  <div class="top">
+    <span><a href="/"><span class="lamp"></span><span class="name">QuietBroadcast</span></a></span>
+    <span><a href="/log.html">the Log</a></span>
+  </div>
+
+  <main>
+    <p class="said">Off air</p>
+    <h1>Nothing here.</h1>
+    <p class="body">Whatever was at this address, the station never broadcast it.
+      <a href="/">Something is playing now</a>, though.</p>
+  </main>
+
+  <footer>
+    <span id="line"></span>
+    <button id="theme" type="button">light</button>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var themeBtn = document.getElementById("theme");
+  function stored(v){ try{ return v===undefined ? localStorage.getItem("theme")
+                                                : localStorage.setItem("theme",v) }catch(e){} }
+  function paint(m){
+    document.documentElement.setAttribute("data-theme",m);
+    themeBtn.textContent = m==="dark" ? "light" : "dark";
+  }
+  paint(stored()||"dark");
+  themeBtn.onclick = function(){
+    var m = document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark";
+    stored(m); paint(m);
+  };
+
+  var path = location.pathname.replace(/^\/+|\/+$/g,"");
+  document.getElementById("line").textContent =
+    path ? "No record lives at /" + path : "The page could not be found.";
+})();
+</script>
+</body>
+</html>

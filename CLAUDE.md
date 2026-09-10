@@ -4,7 +4,15 @@ One record every six hours, drawn from Greg's Last.fm library. Static HTML, no
 build step, no dependencies, no tracking. `README.md` is the public face — keep it
 short. This file is the working document.
 
-Not deployed yet. No `CNAME`, no GitHub Pages, no domain.
+Live at **quietbroadcast.com** — GitHub Pages from `main` on `polyconic/quietbroadcast`,
+`CNAME` in the repo root. **Pushing to `main` publishes**; there is no staging.
+
+**If HTTPS ever stalls:** setting the custom domain in Pages settings *before* DNS points
+at GitHub makes the certificate request fail, and GitHub sticks in that failed state
+rather than retrying. Removing the custom domain, waiting, and re-adding it forces a
+fresh attempt. DNS is four A records to 185.199.108–111.153 plus `www` CNAME to
+`polyconic.github.io`, and there is deliberately no CAA record — a CAA that omits
+Let's Encrypt would block issuance silently.
 
 ## The mechanic
 
@@ -102,7 +110,21 @@ the network graph.
 |---|---|
 | `index.html` | The slot. Sleeve, one record, its tracklist, where to get it. |
 | `log.html` | Everything aired, in prose; the artist network; a journal of recent days. |
+| `404.html` | Off air. GitHub Pages serves this for any unknown path. `noindex`. |
 | `tools/art.py` | Sleeve art from the local cache into `art/`. |
+
+Pages move with **cross-document view transitions** — `@view-transition{navigation:auto}`
+plus `view-transition-name:masthead` on `.top`, so the wordmark holds still while the rest
+crossfades. No JS, no library. Browsers without it get a plain fade via
+`@supports not (view-transition-name:none)`, and both paths are disabled under
+`prefers-reduced-motion`. Any new page needs that same block or it will jump-cut.
+
+**Social and search metadata** lives in each page's head: Open Graph, Twitter card,
+canonical, and WebSite JSON-LD on the front page, with `robots.txt` and `sitemap.xml` in
+the root. `og.png` is `meta.png` padded to 978x512 (exactly 1.91:1) — the raw 630x512
+gets letterboxed or cropped by iMessage and Twitter. Favicons are generated from
+`FAVICON.png`; the 180px apple-touch icon is flattened onto black because iOS ignores
+transparency and fringes it.
 
 The network graph is a hand-rolled force simulation on canvas — no library. Edges join
 artists sharing **two or more** tags; one shared tag connects everything to everything.

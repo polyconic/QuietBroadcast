@@ -59,6 +59,24 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--serif);
 @keyframes grain{0%{transform:translate(0,0)}50%{transform:translate(-3%,2%)}100%{transform:translate(2%,-1%)}}
 @media (prefers-reduced-motion:reduce){.grain,.ambient i,.lamp{animation:none}}
 
+/* Cross-document transitions. Supported browsers crossfade between the two
+   pages with the masthead held in place; everywhere else this is inert and
+   the fallback below does a plain fade instead. */
+@view-transition{navigation:auto}
+.top{view-transition-name:masthead}
+::view-transition-old(root){animation-duration:.28s;animation-timing-function:ease}
+::view-transition-new(root){animation-duration:.38s;animation-timing-function:ease}
+::view-transition-group(masthead){animation-duration:.34s}
+@supports not (view-transition-name:none){
+  .wrap{animation:pagein .42s ease both}
+  @keyframes pagein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+}
+@media (prefers-reduced-motion:reduce){
+  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
+  .wrap{animation:none}
+}
+
+
 .wrap{position:relative;z-index:2;width:100%}
 .col{max-width:880px;margin:0 auto}
 .top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
