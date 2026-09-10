@@ -17,7 +17,7 @@
   --bg:#efece6; --fg:#1a1916; --dim:#5c5952; --faint:#9c988f; --line:#d9d5cc;
 }
 *{box-sizing:border-box}
-html,body{height:100%}
+html{height:100%}
 body{
   margin:0; background:var(--bg); color:var(--fg); font-family:var(--serif);
   font-size:17px; line-height:1.55; min-height:100%;
@@ -27,7 +27,7 @@ body{
 }
 
 /* the room takes its colour from whatever is on air, and it drifts */
-.ambient{position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden}
+.ambient{position:absolute; inset:0; pointer-events:none; z-index:0; overflow:hidden}
 .ambient i{position:absolute; border-radius:50%; filter:blur(70px); opacity:.42;
   background:rgb(var(--glow)); transition:background 2s ease}
 .ambient i:nth-child(1){width:60vmax;height:60vmax;left:-14vmax;top:-10vmax;
