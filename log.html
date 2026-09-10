@@ -6,14 +6,29 @@
 <title>The log — NodeRecord</title>
 <style>
 :root{
-  --bg:#0f0f0f; --fg:#f0f0f0; --dim:#8a8a8a; --faint:#5a5a5a; --line:#262626;
-  --accent:#e02b1d;
+  --bg:#0f0f0f; --fg:#f0f0f0; --dim:#8f8f8f; --faint:#5a5a5a; --line:#242424;
+  --accent:#e02b1d; --glow:120,120,120;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
 }
 :root[data-theme="light"]{
-  --bg:#f0f0f0; --fg:#0f0f0f; --dim:#6b6b6b; --faint:#9a9a9a; --line:#d8d8d8;
+  --bg:#eeece8; --fg:#131313; --dim:#5f5f5f; --faint:#9a9a9a; --line:#d5d2cc;
 }
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(60vw 60vw at 78% 8%, rgba(var(--glow),.20), transparent 70%)}
+.grain{position:fixed;inset:-50%;pointer-events:none;z-index:1;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:grain 700ms steps(2,end) infinite}
+@keyframes grain{0%{transform:translate(0,0)}50%{transform:translate(-3%,2%)}100%{transform:translate(2%,-1%)}}
+@media (prefers-reduced-motion:reduce){.grain{animation:none}}
+.wrap{position:relative;z-index:2}
+.lamp{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);
+  margin-right:8px;vertical-align:1px;animation:pulse 3.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.lamp{animation:none}}
+td.th{width:52px;padding-right:14px}
+td.th img{width:44px;height:44px;object-fit:cover;display:block;border:1px solid var(--line)}
+td.th .no{width:44px;height:44px;background:rgba(128,128,128,.07);border:1px solid var(--line)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);
   font-size:14px;line-height:1.5;padding:0 24px 70px}
@@ -46,8 +61,9 @@ h2{font-size:10.5px;font-family:var(--mono);letter-spacing:.18em;text-transform:
 .bars{display:grid;grid-template-columns:auto 1fr auto;gap:7px 12px;align-items:center}
 .bars .lab{font-family:var(--mono);font-size:11px;color:var(--dim);text-transform:uppercase;
   letter-spacing:.08em;white-space:nowrap}
-.bars .track{background:var(--line);height:9px}
-.bars .fill{background:var(--dim);height:9px}
+.bars .track{display:block;background:var(--line);height:9px;width:100%}
+.bars .fill{display:block;background:var(--dim);height:9px;min-width:2px;
+  transition:width .6s ease}
 .bars .num{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
 
 table{width:100%;border-collapse:collapse}
@@ -63,9 +79,11 @@ tr.now td{background:rgba(224,43,29,.07)} tr.now td.d{color:var(--accent)}
 </style>
 </head>
 <body>
+<div class="ambient"></div>
+<div class="grain"></div>
 <div class="wrap">
   <div class="top">
-    <span><a href="index.html"><span class="lamp">●</span> NodeRecord</a></span>
+    <span><a href="index.html"><span class="lamp"></span>NodeRecord</a></span>
     <span>The log</span>
   </div>
 
@@ -151,10 +169,11 @@ tr.now td{background:rgba(224,43,29,.07)} tr.now td.d{color:var(--accent)}
       '<h2>By record length</h2>'+ bars(buckets, 5) +
       '<h2>Most aired</h2>'+ bars(artists, 10) +
       '<h2>Last 24 slots</h2>'+
-      '<table><thead><tr><th>Slot</th><th>Record</th><th>Length</th></tr></thead><tbody>'+
+      '<table><thead><tr><th></th><th>Slot</th><th>Record</th><th>Length</th></tr></thead><tbody>'+
       recent.map(function(a){
         var d = new Date(EPOCH + a.block*SLOT), r = a.rec;
         return '<tr'+(a.block===now?' class="now"':'')+'>'+
+          '<td class="th">'+(r.art?'<img loading="lazy" alt="" src="'+esc(r.art)+'">':'<div class="no"></div>')+'</td>'+
           '<td class="d">'+d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",timeZone:"UTC"})+
             '<br>'+hhmm(d)+'</td>'+
           '<td class="r"><b>'+esc(r.release)+'</b><small>'+esc(r.artist)+'</small></td>'+
