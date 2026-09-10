@@ -141,6 +141,11 @@ of which it got wrong first time round:
   above, below. Without that, names print straight through one another. Hover or
   selection forces a label through with a background plate.
 
+Dragging works on touch as well as mouse. `touchstart` only grabs when the finger lands
+on a node, and `touchmove` is registered `{passive:false}` so it can `preventDefault`
+**only while a node is held** — a canvas this tall that swallowed every swipe would trap
+the page scroll. The caption says "tap" instead of "click" when `(hover:none)` matches.
+
 `?preview=N` renders slot N on either page. Undocumented dev affordance, not a feature.
 
 ## Voice and look

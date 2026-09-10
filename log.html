@@ -162,6 +162,7 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
   var NOT_AN_ARTIST = {"various artists":1, "various":1, "va":1, "unknown artist":1};
   function realArtist(n){ return !NOT_AN_ARTIST[String(n).trim().toLowerCase()] }
 
+  var TOUCH = window.matchMedia ? matchMedia("(hover:none)").matches : "ontouchstart" in window;
   function period(h){ return h<6 ? "small hours" : h<12 ? "morning" : h<18 ? "afternoon" : "evening" }
   function join(list){
     if(list.length < 2) return list.join("");
@@ -245,7 +246,8 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
     document.getElementById("body").innerHTML =
       '<h2>The artists, and who sits near whom</h2>'+
       '<canvas id="graph"></canvas>'+
-      '<p class="cap">Everyone who has aired. A line joins two artists who share a scene. Drag them about; click one for its records.</p>'+
+      '<p class="cap">Everyone who has aired. A line joins two artists who share a scene. '+
+        'Drag them about; '+(TOUCH?'tap':'click')+' one for its records.</p>'+
       '<div id="detail"></div>'+
       '<h2>What it has mostly been</h2><p class="cloud">'+cloud+'</p>'+
       (lengthLine?'<h2>How long they run</h2><p class="prose">'+lengthLine+'</p>':'')+
@@ -468,6 +470,26 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
       }
     });
     window.addEventListener("mouseup", function(){ drag = null });
+
+    /* Touch. Only grab when the finger actually lands on a node, so a swipe
+       anywhere else still scrolls the page normally - a canvas this tall that
+       swallowed every scroll would be miserable. touchmove has to be
+       non-passive to be able to preventDefault once a node is held. */
+    cv.addEventListener("touchstart", function(ev){
+      var nd = hit(at(ev));
+      if(nd){ drag = nd; sel = nd; hover = nd; show(nd) }
+    }, {passive:true});
+    window.addEventListener("touchmove", function(ev){
+      if(!drag) return;
+      ev.preventDefault();
+      var p = at(ev);
+      drag.x = Math.max(drag.r+3, Math.min(W-drag.r-3, p.x));
+      drag.y = Math.max(drag.r+3, Math.min(H-drag.r-3, p.y));
+      drag.vx = drag.vy = 0;
+    }, {passive:false});
+    function endTouch(){ drag = null; hover = null }
+    window.addEventListener("touchend", endTouch);
+    window.addEventListener("touchcancel", endTouch);
 
     function show(nd){
       document.getElementById("detail").innerHTML =
