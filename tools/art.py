@@ -99,12 +99,28 @@ def main():
             if i % 100 == 0:
                 print("    %d/%d" % (i, len(jobs)), flush=True)
 
-    for r, e in failed[:5]:
+    failed_pairs = list(failed)
+    for r, e in failed_pairs[:5]:
         print("    ! %s - %s (%s)" % (r["artist"], r["release"], e))
-    fetched = len(jobs) - len(failed)
-    failed = len(failed)
+    fetched = len(jobs) - len(failed_pairs)
+    failed = len(failed_pairs)
+
+    fail_path = os.path.join(DATA, "art_failed.json")
+    prior = []
+    if os.path.exists(fail_path):
+        prior = json.load(open(fail_path))
+    dead = {tuple(x) for x in prior} | {(r["artist"], r["release"]) for r, _ in failed_pairs}
+    json.dump(sorted(dead), open(fail_path, "w"), ensure_ascii=False, indent=0)
 
     json.dump(sched, open(SCHED, "w"), ensure_ascii=False, separators=(",", ":"))
+    # drop sleeves nothing references any more (a record left the pool before airing)
+    keep = {os.path.basename(r["art"]) for r in sched["records"] if r.get("art")}
+    orphans = [f for f in os.listdir(ART) if f not in keep and not f.startswith(".")]
+    for f in orphans:
+        os.remove(os.path.join(ART, f))
+    if orphans:
+        print("  pruned %d unreferenced sleeves" % len(orphans))
+
     total = sum(os.path.getsize(os.path.join(ART, f)) for f in os.listdir(ART))
     withart = sum(1 for r in sched["records"] if r.get("art"))
     print("\n  %d of %d records have a sleeve (%d had none on Last.fm, %d failed)"

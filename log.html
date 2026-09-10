@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The log — NodeRecord</title>
+<title>The Log — NodeRecord</title>
 <style>
 :root{
   --bg:#111110; --fg:#ece9e2; --dim:#9a968e; --faint:#5e5b55; --line:#28271f;
@@ -84,10 +84,10 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
 <div class="wrap">
   <div class="top">
     <span><a href="index.html"><span class="lamp"></span><span class="name">NodeRecord</span></a></span>
-    <span>the log</span>
+    <span>the Log</span>
   </div>
 
-  <h1>The log</h1>
+  <h1>The Log</h1>
   <p class="lede">Everything the station has put on air, and what it adds up to. The schedule
     is written down rather than worked out on the fly, so what has aired is fixed for good
     and new records only ever join the future.</p>
@@ -109,6 +109,9 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
     if(n < 100) return TENS[Math.floor(n/10)] + (n%10 ? "-"+ONES[n%10] : "");
     return String(n);
   }
+  var NOT_AN_ARTIST = {"various artists":1, "various":1, "va":1, "unknown artist":1};
+  function realArtist(n){ return !NOT_AN_ARTIST[String(n).trim().toLowerCase()] }
+
   function period(h){ return h<6 ? "small hours" : h<12 ? "morning" : h<18 ? "afternoon" : "evening" }
   function join(list){
     if(list.length < 2) return list.join("");
@@ -134,21 +137,18 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
     var artists = {}, tags = {}, secs = 0, lens = [];
     aired.forEach(function(a){
       var r = a.rec;
-      artists[r.artist] = (artists[r.artist]||0) + 1;
+      if(realArtist(r.artist)) artists[r.artist] = (artists[r.artist]||0) + 1;
       (r.tags||[]).forEach(function(t){ tags[t] = (tags[t]||0)+1 });
       secs += r.secs||0;
       if(r.secs) lens.push(r.secs);
     });
     var artistNames = Object.keys(artists);
-    var unaired = n - new Set(sched.slots.slice(0, now+1)).size;
     var since = new Date(EPOCH).toLocaleDateString("en-GB",{day:"numeric",month:"long",timeZone:"UTC"});
     var hours = Math.round(secs/3600);
 
     document.getElementById("stats").innerHTML =
       'On air since '+esc(since)+'. <b>'+aired.length+' records</b> have gone out so far — '+
-      'about <b>'+hours+' hours</b> of music from <b>'+artistNames.length+' artists</b>. '+
-      (unaired>0 ? '<b>'+unaired+'</b> in the pool are still waiting their turn.'
-                 : 'Everything in the pool has played at least once.');
+      'about <b>'+hours+' hours</b> of music from <b>'+artistNames.length+' artists</b>.';
 
     function top(obj, limit){
       return Object.keys(obj).map(function(k){ return [k, obj[k]] })

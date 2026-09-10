@@ -60,6 +60,7 @@ makes zero API calls at runtime and should stay that way.
 | `--max-listeners` | 100000 | Fame ceiling. Discovery means not airing what everyone has heard. |
 | `--genre-fame-pct` | 0 | Trims each genre's canon. Only useful on a multi-genre pool; redundant now the pool is electronic-only. |
 | `--max-minutes` | 120 | Above this it is a box set, not a record. |
+| `--allow-artless` | off | By default a record with no sleeve is dropped — the front page is mostly the sleeve. |
 | `--all-genres` | off | Turns off the electronic-adjacent gate. |
 
 `ELECTRONIC_TAGS` is the gate. Trip-hop and sample-based instrumental beats are in
@@ -68,8 +69,18 @@ Two judgement calls worth knowing: disco and dub are in, because nu-disco and du
 techno are entangled with the rest; and Gorillaz and Fishmans get through on their
 electronic tags, which is "adjacent" behaving as asked.
 
-`EXCLUDE_ARTISTS` keeps Greg's own records off the station. Exact artist match — his
-library only has the one credit spelling, `Gregor Egan`, so that is safe here.
+`EXCLUDE_ARTISTS` keeps records off the station entirely: Greg's own (`gregor egan`)
+and `goose`, which slipped the electronic gate on a stray tag. Exact artist match.
+
+**Artless records are dropped.** `schedule.py` imports `url_map()` from `art.py` to see
+what the local cache has a sleeve URL for, and also reads `data/art_failed.json` — the
+handful whose URLs 404 on every size — so both are gone before scheduling. Run
+`tools/art.py` after `tools/schedule.py`; if it records new failures, run the scheduler
+once more to drop them. `art.py` also prunes sleeves nothing references any more.
+
+**`Various Artists` is not an artist.** Compilations still air, but `NOT_AN_ARTIST` in
+`log.html` keeps the label out of the artist count, the "keeps coming back" list and
+the network graph.
 
 ## Last.fm quirks — do not rediscover these
 

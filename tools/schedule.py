@@ -17,7 +17,7 @@ POOL = os.path.join(DATA, "albums.json")
 EPOCH = "2026-09-10"
 
 # Your own records stay off the station.
-EXCLUDE_ARTISTS = {"gregor egan"}
+EXCLUDE_ARTISTS = {"gregor egan", "goose"}
 
 # Fame is relative to scene: 30k listeners is canonical in techno and nothing in rock.
 # So the canon is trimmed per genre, then a hard ceiling catches the outright megahits.
@@ -149,6 +149,8 @@ def main():
                    help="above this it is a box set, not a record")
     p.add_argument("--exclude", action="append", default=[],
                    help="artist to keep off the station (repeatable)")
+    p.add_argument("--allow-artless", action="store_true",
+                   help="keep records with no sleeve; by default they are dropped")
     p.add_argument("--all-genres", action="store_true",
                    help="keep non-electronic music too")
     p.add_argument("--genre-fame-pct", type=float, default=0.35,
@@ -195,6 +197,20 @@ def main():
         pool = [r for r in pool if is_electronic(r.get("tags") or [])]
         print("  electronic-adjacent only: %d of %d kept (%d had no tags at all)"
               % (len(pool), before, len(untagged)))
+
+    if not a.allow_artless:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from art import url_map            # reads the local cache, makes no API calls
+        have = url_map()
+        dead = set()
+        fail_path = os.path.join(DATA, "art_failed.json")
+        if os.path.exists(fail_path):
+            dead = {tuple(x) for x in json.load(open(fail_path))}
+        before = len(pool)
+        pool = [r for r in pool
+                if (r["artist"], r["release"]) in have
+                and (r["artist"], r["release"]) not in dead]
+        print("  dropped %d records with no sleeve" % (before - len(pool)))
 
     banned = EXCLUDE_ARTISTS | {x.lower() for x in a.exclude}
     before = len(pool)
