@@ -6,104 +6,117 @@
 <title>The log — NodeRecord</title>
 <style>
 :root{
-  --bg:#0f0f0f; --fg:#f0f0f0; --dim:#8f8f8f; --faint:#5a5a5a; --line:#242424;
+  --bg:#111110; --fg:#ece9e2; --dim:#9a968e; --faint:#5e5b55; --line:#28271f;
   --accent:#e02b1d; --glow:120,120,120;
-  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,"Times New Roman",serif;
   --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
 }
 :root[data-theme="light"]{
-  --bg:#eeece8; --fg:#131313; --dim:#5f5f5f; --faint:#9a9a9a; --line:#d5d2cc;
+  --bg:#efece6; --fg:#1a1916; --dim:#5c5952; --faint:#9c988f; --line:#d9d5cc;
 }
-.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:radial-gradient(60vw 60vw at 78% 8%, rgba(var(--glow),.20), transparent 70%)}
-.grain{position:fixed;inset:-50%;pointer-events:none;z-index:1;opacity:.05;
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--serif);
+  font-size:17px;line-height:1.6;padding:0 clamp(20px,5vw,72px) 90px;
+  position:relative;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.ambient i{position:absolute;border-radius:50%;filter:blur(70px);opacity:.22;
+  background:rgb(var(--glow));width:60vmax;height:60vmax;right:-20vmax;top:-24vmax;
+  animation:drift 44s ease-in-out infinite alternate}
+@keyframes drift{from{transform:translate(0,0)}to{transform:translate(-8vmax,9vmax)}}
+:root[data-theme="light"] .ambient i{opacity:.14}
+.grain{position:fixed;inset:-50%;pointer-events:none;z-index:1;opacity:.045;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
   animation:grain 700ms steps(2,end) infinite}
 @keyframes grain{0%{transform:translate(0,0)}50%{transform:translate(-3%,2%)}100%{transform:translate(2%,-1%)}}
-@media (prefers-reduced-motion:reduce){.grain{animation:none}}
-.wrap{position:relative;z-index:2}
-.lamp{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);
-  margin-right:8px;vertical-align:1px;animation:pulse 3.4s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-@media (prefers-reduced-motion:reduce){.lamp{animation:none}}
-td.th{width:52px;padding-right:14px}
-td.th img{width:44px;height:44px;object-fit:cover;display:block;border:1px solid var(--line)}
-td.th .no{width:44px;height:44px;background:rgba(128,128,128,.07);border:1px solid var(--line)}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);
-  font-size:14px;line-height:1.5;padding:0 24px 70px}
-.wrap{max-width:940px;margin:0 auto}
+@media (prefers-reduced-motion:reduce){.grain,.ambient i,.lamp{animation:none}}
+
+.wrap{position:relative;z-index:2;max-width:880px;margin:0 auto}
 .top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
-  padding:26px 0 0;font-family:var(--mono);font-size:11px;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--faint)}
-.top a{color:var(--faint);text-decoration:none}
+  padding:26px 0 0;font-size:16px;color:var(--dim)}
+.top a{color:var(--dim);text-decoration:none;transition:color .2s}
 .top a:hover{color:var(--fg)}
-.lamp{color:var(--accent)}
-h1{font-size:30px;letter-spacing:-.02em;margin:38px 0 6px}
-.lede{color:var(--dim);margin:0 0 30px;max-width:58ch}
+.top .name{color:var(--fg)}
+.lamp{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);
+  margin-right:10px;vertical-align:2px;animation:pulse 3.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-.stat{display:flex;gap:38px;flex-wrap:wrap;border-top:1px solid var(--line);
-  border-bottom:1px solid var(--line);padding:20px 0;margin:0 0 34px}
-.stat .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--faint)}
-.stat .v{font-family:var(--mono);font-size:24px;margin-top:5px}
+h1{font-weight:400;font-size:clamp(38px,5.5vw,64px);letter-spacing:-.015em;line-height:1.05;
+  margin:56px 0 18px}
+.lede{color:var(--dim);margin:0;max-width:56ch}
+.stats{font-size:clamp(19px,2.3vw,24px);line-height:1.45;margin:38px 0 0;max-width:34ch;
+  text-wrap:pretty}
+.stats b{font-weight:400;color:var(--fg)}
+.stats{color:var(--dim)}
 
-h2{font-size:10.5px;font-family:var(--mono);letter-spacing:.18em;text-transform:uppercase;
-  color:var(--dim);margin:38px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
-
-#graph{width:100%;height:460px;display:block;border:1px solid var(--line);cursor:grab}
+h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px 0 16px}
+#graph{width:100%;height:520px;display:block;cursor:grab}
 #graph:active{cursor:grabbing}
-.gnote{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--faint);margin:10px 0 0}
-#detail{min-height:42px;margin:14px 0 0;color:var(--dim);font-size:13.5px}
-#detail b{color:var(--fg);font-weight:500}
+.cap{font-style:italic;color:var(--faint);font-size:15px;margin:8px 0 0}
+#detail{min-height:44px;margin:12px 0 0;color:var(--dim);font-size:16px}
+#detail b{color:var(--fg);font-weight:400}
 
-.bars{display:grid;grid-template-columns:auto 1fr auto;gap:7px 12px;align-items:center}
-.bars .lab{font-family:var(--mono);font-size:11px;color:var(--dim);text-transform:uppercase;
-  letter-spacing:.08em;white-space:nowrap}
-.bars .track{display:block;background:var(--line);height:9px;width:100%}
-.bars .fill{display:block;background:var(--dim);height:9px;min-width:2px;
-  transition:width .6s ease}
-.bars .num{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+.cloud{line-height:1.25;margin:0;max-width:60ch}
+.cloud span{display:inline-block;margin:0 .35em .25em 0;color:var(--fg);white-space:nowrap}
+.cloud span small{font-size:.55em;color:var(--faint);margin-left:.25em;vertical-align:.15em}
+.prose{color:var(--dim);margin:0;max-width:56ch}
+.prose b{font-weight:400;color:var(--fg)}
 
-table{width:100%;border-collapse:collapse}
-th{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--faint);text-align:left;font-weight:400;padding:0 10px 9px 0;
-  border-bottom:1px solid var(--line)}
-td{padding:10px 10px 10px 0;border-bottom:1px solid var(--line);vertical-align:top}
-td.d{font-family:var(--mono);font-size:10.5px;color:var(--faint);white-space:nowrap}
-td.r b{font-weight:500} td.r small{display:block;color:var(--dim);font-size:12.5px;margin-top:2px}
-tr.now td{background:rgba(224,43,29,.07)} tr.now td.d{color:var(--accent)}
-.err{color:var(--accent);font-family:var(--mono);font-size:12px}
-@media(max-width:620px){ body{padding:0 16px 60px} #graph{height:340px} }
+.day{margin:0 0 30px}
+.day h3{font-weight:400;font-style:italic;font-size:16px;color:var(--faint);margin:0 0 10px}
+.entry{display:grid;grid-template-columns:52px 1fr auto;gap:0 16px;align-items:center;
+  padding:9px 0}
+.entry img{width:52px;height:52px;object-fit:cover;display:block;
+  box-shadow:0 8px 20px -10px rgba(0,0,0,.6)}
+.entry .no{width:52px;height:52px;background:rgba(128,128,128,.07)}
+.entry .r{font-size:17px}
+.entry .r small{display:block;font-family:var(--sans);font-size:13px;color:var(--dim);margin-top:1px}
+.entry .p{font-style:italic;color:var(--faint);font-size:15px;white-space:nowrap}
+.entry.now .p{color:var(--accent)}
+.foot{margin:60px 0 0;font-style:italic;color:var(--faint);font-size:15px}
+.foot a{color:var(--dim);text-decoration:none}
+.err{color:var(--accent);font-family:var(--sans);font-size:13px}
+@media(max-width:620px){ #graph{height:380px} .entry{grid-template-columns:44px 1fr} .entry .p{grid-column:2} }
 </style>
 </head>
 <body>
-<div class="ambient"></div>
+<div class="ambient"><i></i></div>
 <div class="grain"></div>
 <div class="wrap">
   <div class="top">
-    <span><a href="index.html"><span class="lamp"></span>NodeRecord</a></span>
-    <span>The log</span>
+    <span><a href="index.html"><span class="lamp"></span><span class="name">NodeRecord</span></a></span>
+    <span>the log</span>
   </div>
 
   <h1>The log</h1>
-  <p class="lede">Everything the station has put on air, and what it adds up to. The schedule is written down rather than worked out on the fly, so what has aired is fixed forever and new records only ever join the future.</p>
+  <p class="lede">Everything the station has put on air, and what it adds up to. The schedule
+    is written down rather than worked out on the fly, so what has aired is fixed for good
+    and new records only ever join the future.</p>
 
-  <div class="stat" id="stat"></div>
+  <p class="stats" id="stats"></p>
   <div id="body"></div>
 </div>
 
 <script>
 (function(){
   var EPOCH, SLOT;
-
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
     return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c] }) }
-  function hhmm(d){ return String(d.getUTCHours()).padStart(2,"0")+":00" }
+  var ONES = ["zero","one","two","three","four","five","six","seven","eight","nine","ten",
+    "eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];
+  var TENS = ["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
+  function words(n){
+    if(n < 20) return ONES[n];
+    if(n < 100) return TENS[Math.floor(n/10)] + (n%10 ? "-"+ONES[n%10] : "");
+    return String(n);
+  }
+  function period(h){ return h<6 ? "small hours" : h<12 ? "morning" : h<18 ? "afternoon" : "evening" }
+  function join(list){
+    if(list.length < 2) return list.join("");
+    return list.slice(0,-1).join(", ") + " and " + list[list.length-1];
+  }
 
   fetch("data/schedule.json").then(function(r){
-    if(!r.ok) throw new Error("schedule.json missing — run tools/schedule.py");
+    if(!r.ok) throw new Error("schedule.json missing - run tools/schedule.py");
     return r.json();
   }).then(function(sched){
     EPOCH = Date.parse(sched.epoch + "T00:00:00Z");
@@ -127,58 +140,68 @@ tr.now td{background:rgba(224,43,29,.07)} tr.now td.d{color:var(--accent)}
       if(r.secs) lens.push(r.secs);
     });
     var artistNames = Object.keys(artists);
+    var unaired = n - new Set(sched.slots.slice(0, now+1)).size;
+    var since = new Date(EPOCH).toLocaleDateString("en-GB",{day:"numeric",month:"long",timeZone:"UTC"});
+    var hours = Math.round(secs/3600);
 
-    document.getElementById("stat").innerHTML = [
-      ["On air since", new Date(EPOCH).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric",timeZone:"UTC"})],
-      ["Records aired", aired.length],
-      ["Artists", artistNames.length],
-      ["Hours broadcast", (secs/3600).toFixed(1)],
-      ["Never aired", Math.max(0, n - new Set(sched.slots.slice(0, now+1)).size)]
-    ].map(function(p){
-      return '<div><div class="k">'+p[0]+'</div><div class="v">'+esc(p[1])+'</div></div>';
+    document.getElementById("stats").innerHTML =
+      'On air since '+esc(since)+'. <b>'+aired.length+' records</b> have gone out so far — '+
+      'about <b>'+hours+' hours</b> of music from <b>'+artistNames.length+' artists</b>. '+
+      (unaired>0 ? '<b>'+unaired+'</b> in the pool are still waiting their turn.'
+                 : 'Everything in the pool has played at least once.');
+
+    function top(obj, limit){
+      return Object.keys(obj).map(function(k){ return [k, obj[k]] })
+        .sort(function(a,b){ return b[1]-a[1] || a[0].localeCompare(b[0]) }).slice(0,limit);
+    }
+    var tg = top(tags, 18), tmax = tg.length ? tg[0][1] : 1, tmin = tg.length ? tg[tg.length-1][1] : 1;
+    var cloud = tg.map(function(p){
+      var t = tmax===tmin ? 1 : (p[1]-tmin)/(tmax-tmin);
+      var size = 16 + Math.pow(t, .8) * 30;
+      return '<span style="font-size:'+size.toFixed(1)+'px">'+esc(p[0])+'<small>'+p[1]+'</small></span>';
+    }).join(" ");
+
+    var under20=0, mid=0, over70=0;
+    lens.forEach(function(s){ var m=s/60; if(m<20) under20++; else if(m>70) over70++; else mid++ });
+    var lengthLine = lens.length ?
+      'Most of them run somewhere between twenty and seventy minutes'+
+      (under20?'; <b>'+under20+'</b> are short, under twenty':'')+
+      (over70?'; <b>'+over70+'</b> run past seventy':'')+'.' : '';
+
+    var ta = top(artists, 8).filter(function(p){ return p[1]>1 });
+    var mostLine = ta.length ?
+      'The artists that have come round most often are '+
+      join(ta.map(function(p){ return '<b>'+esc(p[0])+'</b> ('+p[1]+')' }))+'.' :
+      'No artist has come round twice yet.';
+
+    var recent = aired.slice(-28).reverse(), days = [], byDay = {};
+    recent.forEach(function(a){
+      var d = new Date(EPOCH + a.block*SLOT);
+      var key = d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",timeZone:"UTC"});
+      if(!byDay[key]){ byDay[key]=[]; days.push(key) }
+      byDay[key].push({a:a, p:period(d.getUTCHours())});
+    });
+    var journal = days.map(function(k){
+      return '<div class="day"><h3>'+esc(k)+'</h3>'+ byDay[k].map(function(e){
+        var r = e.a.rec;
+        return '<div class="entry'+(e.a.block===now?' now':'')+'">'+
+          (r.art?'<img loading="lazy" alt="" src="'+esc(r.art)+'">':'<div class="no"></div>')+
+          '<div class="r">'+esc(r.release)+'<small>'+esc(r.artist)+
+            (r.secs?' · '+Math.round(r.secs/60)+' min':'')+'</small></div>'+
+          '<span class="p">'+(e.a.block===now?'on air now':e.p)+'</span></div>';
+      }).join("") + '</div>';
     }).join("");
 
-    function bars(obj, limit){
-      var e = Object.keys(obj).map(function(k){ return [k, obj[k]] })
-        .sort(function(a,b){ return b[1]-a[1] || a[0].localeCompare(b[0]) }).slice(0,limit);
-      var max = e.length ? e[0][1] : 1;
-      return '<div class="bars">' + e.map(function(p){
-        return '<span class="lab">'+esc(p[0])+'</span>'+
-               '<span class="track"><span class="fill" style="width:'+(p[1]/max*100)+'%"></span></span>'+
-               '<span class="num">'+p[1]+'</span>';
-      }).join("") + '</div>';
-    }
-
-    var buckets = {"under 20 min":0,"20–35":0,"35–50":0,"50–70":0,"over 70":0};
-    lens.forEach(function(s){
-      var m = s/60;
-      if(m<20) buckets["under 20 min"]++;
-      else if(m<35) buckets["20–35"]++;
-      else if(m<50) buckets["35–50"]++;
-      else if(m<70) buckets["50–70"]++;
-      else buckets["over 70"]++;
-    });
-
-    var recent = aired.slice(-24).reverse();
     document.getElementById("body").innerHTML =
-      '<h2>The network</h2>'+
+      '<h2>The artists, and who sits near whom</h2>'+
       '<canvas id="graph"></canvas>'+
-      '<p class="gnote">Artists aired. Lines join artists that share a tag — drag to pull them about, click for the records.</p>'+
+      '<p class="cap">Everyone who has aired. A line joins two artists who share a scene. Drag them about; click one for its records.</p>'+
       '<div id="detail"></div>'+
-      '<h2>By tag</h2>'+ bars(tags, 12) +
-      '<h2>By record length</h2>'+ bars(buckets, 5) +
-      '<h2>Most aired</h2>'+ bars(artists, 10) +
-      '<h2>Last 24 slots</h2>'+
-      '<table><thead><tr><th></th><th>Slot</th><th>Record</th><th>Length</th></tr></thead><tbody>'+
-      recent.map(function(a){
-        var d = new Date(EPOCH + a.block*SLOT), r = a.rec;
-        return '<tr'+(a.block===now?' class="now"':'')+'>'+
-          '<td class="th">'+(r.art?'<img loading="lazy" alt="" src="'+esc(r.art)+'">':'<div class="no"></div>')+'</td>'+
-          '<td class="d">'+d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",timeZone:"UTC"})+
-            '<br>'+hhmm(d)+'</td>'+
-          '<td class="r"><b>'+esc(r.release)+'</b><small>'+esc(r.artist)+'</small></td>'+
-          '<td class="d">'+(r.secs?Math.round(r.secs/60)+" min":"—")+'</td></tr>';
-      }).join("")+'</tbody></table>';
+      '<h2>What it has mostly been</h2><p class="cloud">'+cloud+'</p>'+
+      (lengthLine?'<h2>How long they run</h2><p class="prose">'+lengthLine+'</p>':'')+
+      '<h2>Who keeps coming back</h2><p class="prose">'+mostLine+'</p>'+
+      '<h2>The last few days</h2>'+journal+
+      '<p class="foot"><a href="index.html">Back to what\'s on now.</a></p>';
 
     graph(artists, aired);
   }).catch(function(e){
@@ -189,11 +212,11 @@ tr.now td{background:rgba(224,43,29,.07)} tr.now td.d{color:var(--accent)}
     var cv = document.getElementById("graph"), ctx = cv.getContext("2d");
     var css = getComputedStyle(document.documentElement);
     var COL = {
-      line: css.getPropertyValue("--line").trim(),
-      dim:  css.getPropertyValue("--dim").trim(),
       faint: css.getPropertyValue("--faint").trim(),
-      fg:   css.getPropertyValue("--fg").trim(),
-      acc:  css.getPropertyValue("--accent").trim()
+      dim:   css.getPropertyValue("--dim").trim(),
+      fg:    css.getPropertyValue("--fg").trim(),
+      acc:   css.getPropertyValue("--accent").trim(),
+      serif: css.getPropertyValue("--serif").trim()
     };
 
     var byArtist = {};
@@ -206,8 +229,8 @@ tr.now td{background:rgba(224,43,29,.07)} tr.now td.d{color:var(--accent)}
 
     var names = Object.keys(artists)
       .sort(function(a,b){ return artists[b]-artists[a] }).slice(0,70);
-    var nodes = names.map(function(nm,i){
-      return {nm:nm, r:4+Math.min(11, artists[nm]*1.6), x:0, y:0, vx:0, vy:0,
+    var nodes = names.map(function(nm){
+      return {nm:nm, r:3.5+Math.min(10, artists[nm]*1.5), x:0, y:0, vx:0, vy:0,
               tags:Object.keys(byArtist[nm].tags), recs:byArtist[nm].recs};
     });
     var edges = [];
@@ -225,13 +248,13 @@ tr.now td{background:rgba(224,43,29,.07)} tr.now td.d{color:var(--accent)}
       ctx.setTransform(dpr,0,0,dpr,0,0);
     }
     size();
-    window.addEventListener("resize", function(){ size() });
+    window.addEventListener("resize", size);
 
-    var rnd = (function(a){ return function(){
-      a |= 0; a = a + 0x6D2B79F5 | 0;
-      var t = Math.imul(a ^ a >>> 15, 1 | a);
+    var seed = 99;
+    function rnd(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+      var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
       t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-      return ((t ^ t >>> 14) >>> 0) / 4294967296; } })(99);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296 }
     nodes.forEach(function(nd){
       var a = rnd()*Math.PI*2, d = 40 + rnd()*Math.min(W,H)*0.32;
       nd.x = W/2 + Math.cos(a)*d; nd.y = H/2 + Math.sin(a)*d;
@@ -243,16 +266,14 @@ tr.now td{background:rgba(224,43,29,.07)} tr.now td.d{color:var(--accent)}
         for(var j=i+1;j<nodes.length;j++){
           var b = nodes[j], dx = b.x-a.x, dy = b.y-a.y;
           var d2 = dx*dx+dy*dy || 0.01, d = Math.sqrt(d2);
-          var rep = 420/d2;
-          var fx = dx/d*rep, fy = dy/d*rep;
+          var rep = 420/d2, fx = dx/d*rep, fy = dy/d*rep;
           a.vx -= fx; a.vy -= fy; b.vx += fx; b.vy += fy;
         }
       }
       edges.forEach(function(e){
         var a = nodes[e[0]], b = nodes[e[1]];
         var dx = b.x-a.x, dy = b.y-a.y, d = Math.sqrt(dx*dx+dy*dy)||0.01;
-        var target = 74, k = 0.0022*Math.min(3,e[2]);
-        var f = (d-target)*k;
+        var f = (d-74)*0.0022*Math.min(3,e[2]);
         a.vx += dx/d*f; a.vy += dy/d*f; b.vx -= dx/d*f; b.vy -= dy/d*f;
       });
       nodes.forEach(function(nd){
@@ -266,11 +287,11 @@ tr.now td{background:rgba(224,43,29,.07)} tr.now td.d{color:var(--accent)}
 
     function draw(){
       ctx.clearRect(0,0,W,H);
-      ctx.strokeStyle = COL.line; ctx.lineWidth = 1;
+      ctx.lineWidth = 1;
       edges.forEach(function(e){
         var a = nodes[e[0]], b = nodes[e[1]];
         var on = sel && (a===sel || b===sel);
-        ctx.globalAlpha = on ? 0.95 : 0.22;
+        ctx.globalAlpha = on ? 0.95 : 0.18;
         ctx.strokeStyle = on ? COL.acc : COL.faint;
         ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
       });
@@ -280,11 +301,11 @@ tr.now td{background:rgba(224,43,29,.07)} tr.now td.d{color:var(--accent)}
         ctx.fillStyle = nd===sel ? COL.acc : COL.dim; ctx.fill();
       });
       ctx.fillStyle = COL.fg;
-      ctx.font = '10px ui-monospace,Menlo,monospace';
+      ctx.font = 'italic 12px '+COL.serif;
       nodes.forEach(function(nd){
-        if(nd.r > 7 || nd===sel){
-          ctx.globalAlpha = nd===sel ? 1 : 0.72;
-          ctx.fillText(nd.nm, nd.x+nd.r+4, nd.y+3);
+        if(nd.r > 6.5 || nd===sel){
+          ctx.globalAlpha = nd===sel ? 1 : 0.7;
+          ctx.fillText(nd.nm, nd.x+nd.r+5, nd.y+4);
         }
       });
       ctx.globalAlpha = 1;
@@ -313,12 +334,12 @@ tr.now td{background:rgba(224,43,29,.07)} tr.now td.d{color:var(--accent)}
 
     function show(nd){
       document.getElementById("detail").innerHTML =
-        '<b>'+esc(nd.nm)+'</b> — '+nd.recs.length+' record'+(nd.recs.length>1?'s':'')+' aired'+
-        (nd.tags.length?' · '+esc(nd.tags.slice(0,5).join(", ")):'')+
-        '<br>'+nd.recs.map(esc).join(" · ");
+        '<b>'+esc(nd.nm)+'</b> — '+ (nd.recs.length===1 ? 'one record' : words(nd.recs.length)+' records') +
+        ' so far: '+ nd.recs.map(function(r){ return '<i>'+esc(r)+'</i>' }).join(", ") +
+        (nd.tags.length ? '. Mostly '+esc(nd.tags.slice(0,4).join(", "))+'.' : '.');
     }
 
-    for(var w=0; w<420; w++) step();   // open settled, not mid-explosion
+    for(var w=0; w<420; w++) step();
     (function loop(){ step(); draw(); requestAnimationFrame(loop) })();
   }
 

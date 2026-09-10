@@ -89,8 +89,9 @@ library only has the one credit spelling, `Gregor Egan`, so that is safe here.
 
 | File | What it is |
 |---|---|
-| `index.html` | The slot. One record, its tracklist, where to get it, countdown. |
-| `log.html` | Everything aired, tag and length stats, and the artist network. |
+| `index.html` | The slot. Sleeve, one record, its tracklist, where to get it. |
+| `log.html` | Everything aired, in prose; the artist network; a journal of recent days. |
+| `tools/art.py` | Sleeve art from the local cache into `art/`. |
 
 The network graph is a hand-rolled force simulation on canvas — no library. Edges
 join artists sharing **two or more** tags; one shared tag connects everything to
@@ -98,13 +99,43 @@ everything. It pre-runs 420 steps before the first paint so it opens settled.
 
 `?preview=N` renders slot N on either page. Undocumented dev affordance, not a feature.
 
+## Voice and look
+
+The pages are meant to read like the back of a sleeve, not an instrument panel.
+Greg asked for "organic, less dashboard" after a first pass that was all
+monospace caps, pills, bordered buttons, stat tiles and bar charts. So:
+
+- **System serif** for nearly everything (`--serif`: Iowan Old Style / Palatino /
+  Georgia — nothing is fetched). Sans only for artist names and durations.
+- **Prose where there were labels.** "Four tracks, twenty-two minutes — techno, dub
+  techno." Small numbers are spelled out (`words()`). The countdown is a sentence
+  that updates every 30s, not a ticking clock.
+- **The four slots are named**, not numbered: *in the small hours* (00:00), *morning*
+  (06:00), *afternoon* (12:00), *evening* (18:00). Station time is UTC.
+- The log's stats are a paragraph, tags are a weighted type cloud, recent slots are
+  a journal grouped by day. No tiles, no bars.
+- Tracklist uses dotted leaders and CSS counters — no hairlines, no mono numbers.
+
+**Colour:** the chrome is greyscale; `--accent` `#e02b1d` (the vault's red) is only the
+on-air lamp and "on air now". Everything else colourful on the page is **sampled from
+the sleeve currently on air** — `tint()` averages the image (weighted toward saturated
+pixels, pushed away from grey) and sets `--glow`, which feeds two slow-drifting blurred
+blobs and the sleeve's shadow. The art is served from this origin, so the canvas read
+is untainted. A near-grey sleeve still yields something; a missing sleeve leaves the
+default grey.
+
+Film grain is an inline SVG turbulence, ~4.5% opacity. All motion respects
+`prefers-reduced-motion`.
+
+Sleeves live in `art/` via `tools/art.py` (reads the local API cache, no API calls;
+12-wide downloads; falls back through image sizes because Last.fm 404s the largest for
+some releases). 317 of 369 have one. The rest show "no sleeve survives".
+
 ## Theme
 
 Shared `localStorage` key `theme`, `light`/`dark`, dark by default, same as the other
-sites. Reads and writes are wrapped in try/catch — `localStorage` throws on `file:`
-and `data:` origins and an unguarded access kills the rest of the script.
-
-`--accent` `#e02b1d` is the only colour, same red as the vault.
+sites. Light is warm paper (`#efece6`), not white. Reads and writes are wrapped in
+try/catch — `localStorage` throws on `file:` and `data:` origins.
 
 ## Local preview
 
