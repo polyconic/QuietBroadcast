@@ -27,7 +27,7 @@ def call(method, retries=4, **params):
     url = API + "?" + urllib.parse.urlencode(params)
     for attempt in range(retries):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "NodeRecord/1.0"})
+            req = urllib.request.Request(url, headers={"User-Agent": "QuietBroadcast/1.0"})
             with urllib.request.urlopen(req, timeout=30) as r:
                 d = json.load(r)
             if "error" in d:

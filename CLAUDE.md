@@ -1,4 +1,4 @@
-# NodeRecord
+# QuietBroadcast
 
 One record every six hours, drawn from Greg's Last.fm library. Static HTML, no
 build step, no dependencies, no tracking. `README.md` is the public face — keep it

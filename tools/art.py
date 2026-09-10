@@ -97,7 +97,7 @@ def main():
         tmp = path + ".src"
         for u in us:
             try:
-                req = urllib.request.Request(u, headers={"User-Agent": "NodeRecord/1.0"})
+                req = urllib.request.Request(u, headers={"User-Agent": "QuietBroadcast/1.0"})
                 with urllib.request.urlopen(req, timeout=30) as resp:
                     blob = resp.read()
                 if len(blob) < 500:

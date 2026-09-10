@@ -1,4 +1,4 @@
-# NodeRecord
+# QuietBroadcast
 
 One record showcased every six hours. The same record for everyone, chosen by the clock.
 
