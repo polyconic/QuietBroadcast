@@ -1,10 +1,9 @@
 # NodeRecord
 
-One record every six hours. The same record for everyone, chosen by the clock.
+One record showcased every six hours. The same record for everyone, chosen by the clock.
 
-No player, no algorithm, no account, no feed. Each slot shows one release — the
-artist, the tracklist, how long it runs — and points you at where to hear and buy
-it. Six hours later it changes.
+No player and no algorithm. Each slot shows one release — the
+artist, the tracklist, and how long it runs.
 
 **The log** is the second page: everything that has been on air, what it adds up
 to by tag and by length, and a network of the artists that have played, joined
