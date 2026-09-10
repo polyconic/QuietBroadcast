@@ -1,0 +1,10 @@
+# Raw Last.fm API responses. Big, regenerable, and only an input to data/albums.json.
+data/.cache/
+data/albums.raw.json
+data/*.log
+
+# The API key lives at ~/.lastfm-key, outside the repo. Never move it in here.
+.lastfm-key
+*.key
+
+.DS_Store

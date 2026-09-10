@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The log — NodeRecord</title>
+<style>
+:root{
+  --bg:#0f0f0f; --fg:#f0f0f0; --dim:#8a8a8a; --faint:#5a5a5a; --line:#262626;
+  --accent:#e02b1d;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+:root[data-theme="light"]{
+  --bg:#f0f0f0; --fg:#0f0f0f; --dim:#6b6b6b; --faint:#9a9a9a; --line:#d8d8d8;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);
+  font-size:14px;line-height:1.5;padding:0 24px 70px}
+.wrap{max-width:940px;margin:0 auto}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+  padding:26px 0 0;font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--faint)}
+.top a{color:var(--faint);text-decoration:none}
+.top a:hover{color:var(--fg)}
+.lamp{color:var(--accent)}
+h1{font-size:30px;letter-spacing:-.02em;margin:38px 0 6px}
+.lede{color:var(--dim);margin:0 0 30px;max-width:58ch}
+
+.stat{display:flex;gap:38px;flex-wrap:wrap;border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);padding:20px 0;margin:0 0 34px}
+.stat .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--faint)}
+.stat .v{font-family:var(--mono);font-size:24px;margin-top:5px}
+
+h2{font-size:10.5px;font-family:var(--mono);letter-spacing:.18em;text-transform:uppercase;
+  color:var(--dim);margin:38px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+
+#graph{width:100%;height:460px;display:block;border:1px solid var(--line);cursor:grab}
+#graph:active{cursor:grabbing}
+.gnote{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--faint);margin:10px 0 0}
+#detail{min-height:42px;margin:14px 0 0;color:var(--dim);font-size:13.5px}
+#detail b{color:var(--fg);font-weight:500}
+
+.bars{display:grid;grid-template-columns:auto 1fr auto;gap:7px 12px;align-items:center}
+.bars .lab{font-family:var(--mono);font-size:11px;color:var(--dim);text-transform:uppercase;
+  letter-spacing:.08em;white-space:nowrap}
+.bars .track{background:var(--line);height:9px}
+.bars .fill{background:var(--dim);height:9px}
+.bars .num{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+
+table{width:100%;border-collapse:collapse}
+th{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--faint);text-align:left;font-weight:400;padding:0 10px 9px 0;
+  border-bottom:1px solid var(--line)}
+td{padding:10px 10px 10px 0;border-bottom:1px solid var(--line);vertical-align:top}
+td.d{font-family:var(--mono);font-size:10.5px;color:var(--faint);white-space:nowrap}
+td.r b{font-weight:500} td.r small{display:block;color:var(--dim);font-size:12.5px;margin-top:2px}
+tr.now td{background:rgba(224,43,29,.07)} tr.now td.d{color:var(--accent)}
+.err{color:var(--accent);font-family:var(--mono);font-size:12px}
+@media(max-width:620px){ body{padding:0 16px 60px} #graph{height:340px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <span><a href="index.html"><span class="lamp">●</span> NodeRecord</a></span>
+    <span>The log</span>
+  </div>
+
+  <h1>The log</h1>
+  <p class="lede">Everything the station has put on air, and what it adds up to. The schedule is written down rather than worked out on the fly, so what has aired is fixed forever and new records only ever join the future.</p>
+
+  <div class="stat" id="stat"></div>
+  <div id="body"></div>
+</div>
+
+<script>
+(function(){
+  var EPOCH, SLOT;
+
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c] }) }
+  function hhmm(d){ return String(d.getUTCHours()).padStart(2,"0")+":00" }
+
+  fetch("data/schedule.json").then(function(r){
+    if(!r.ok) throw new Error("schedule.json missing — run tools/schedule.py");
+    return r.json();
+  }).then(function(sched){
+    EPOCH = Date.parse(sched.epoch + "T00:00:00Z");
+    SLOT  = sched.hours*36e5;
+    var n = sched.records.length;
+
+    var now = Math.floor((Date.now() - EPOCH)/SLOT);
+    var q = location.search.match(/[?&]preview=(-?\d+)/);
+    if(q) now = parseInt(q[1],10);
+    now = Math.max(0, Math.min(now, sched.slots.length-1));
+
+    var aired = [];
+    for(var b=0; b<=now; b++) aired.push({block:b, rec: sched.records[ sched.slots[b] ]});
+
+    var artists = {}, tags = {}, secs = 0, lens = [];
+    aired.forEach(function(a){
+      var r = a.rec;
+      artists[r.artist] = (artists[r.artist]||0) + 1;
+      (r.tags||[]).forEach(function(t){ tags[t] = (tags[t]||0)+1 });
+      secs += r.secs||0;
+      if(r.secs) lens.push(r.secs);
+    });
+    var artistNames = Object.keys(artists);
+
+    document.getElementById("stat").innerHTML = [
+      ["On air since", new Date(EPOCH).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric",timeZone:"UTC"})],
+      ["Records aired", aired.length],
+      ["Artists", artistNames.length],
+      ["Hours broadcast", (secs/3600).toFixed(1)],
+      ["Never aired", Math.max(0, n - new Set(sched.slots.slice(0, now+1)).size)]
+    ].map(function(p){
+      return '<div><div class="k">'+p[0]+'</div><div class="v">'+esc(p[1])+'</div></div>';
+    }).join("");
+
+    function bars(obj, limit){
+      var e = Object.keys(obj).map(function(k){ return [k, obj[k]] })
+        .sort(function(a,b){ return b[1]-a[1] || a[0].localeCompare(b[0]) }).slice(0,limit);
+      var max = e.length ? e[0][1] : 1;
+      return '<div class="bars">' + e.map(function(p){
+        return '<span class="lab">'+esc(p[0])+'</span>'+
+               '<span class="track"><span class="fill" style="width:'+(p[1]/max*100)+'%"></span></span>'+
+               '<span class="num">'+p[1]+'</span>';
+      }).join("") + '</div>';
+    }
+
+    var buckets = {"under 20 min":0,"20–35":0,"35–50":0,"50–70":0,"over 70":0};
+    lens.forEach(function(s){
+      var m = s/60;
+      if(m<20) buckets["under 20 min"]++;
+      else if(m<35) buckets["20–35"]++;
+      else if(m<50) buckets["35–50"]++;
+      else if(m<70) buckets["50–70"]++;
+      else buckets["over 70"]++;
+    });
+
+    var recent = aired.slice(-24).reverse();
+    document.getElementById("body").innerHTML =
+      '<h2>The network</h2>'+
+      '<canvas id="graph"></canvas>'+
+      '<p class="gnote">Artists aired. Lines join artists that share a tag — drag to pull them about, click for the records.</p>'+
+      '<div id="detail"></div>'+
+      '<h2>By tag</h2>'+ bars(tags, 12) +
+      '<h2>By record length</h2>'+ bars(buckets, 5) +
+      '<h2>Most aired</h2>'+ bars(artists, 10) +
+      '<h2>Last 24 slots</h2>'+
+      '<table><thead><tr><th>Slot</th><th>Record</th><th>Length</th></tr></thead><tbody>'+
+      recent.map(function(a){
+        var d = new Date(EPOCH + a.block*SLOT), r = a.rec;
+        return '<tr'+(a.block===now?' class="now"':'')+'>'+
+          '<td class="d">'+d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",timeZone:"UTC"})+
+            '<br>'+hhmm(d)+'</td>'+
+          '<td class="r"><b>'+esc(r.release)+'</b><small>'+esc(r.artist)+'</small></td>'+
+          '<td class="d">'+(r.secs?Math.round(r.secs/60)+" min":"—")+'</td></tr>';
+      }).join("")+'</tbody></table>';
+
+    graph(artists, aired);
+  }).catch(function(e){
+    document.getElementById("body").innerHTML = '<p class="err">'+esc(e.message)+'</p>';
+  });
+
+  function graph(artists, aired){
+    var cv = document.getElementById("graph"), ctx = cv.getContext("2d");
+    var css = getComputedStyle(document.documentElement);
+    var COL = {
+      line: css.getPropertyValue("--line").trim(),
+      dim:  css.getPropertyValue("--dim").trim(),
+      faint: css.getPropertyValue("--faint").trim(),
+      fg:   css.getPropertyValue("--fg").trim(),
+      acc:  css.getPropertyValue("--accent").trim()
+    };
+
+    var byArtist = {};
+    aired.forEach(function(a){
+      (byArtist[a.rec.artist] = byArtist[a.rec.artist] || {tags:{}, recs:[]});
+      if(byArtist[a.rec.artist].recs.indexOf(a.rec.release) < 0)
+        byArtist[a.rec.artist].recs.push(a.rec.release);
+      (a.rec.tags||[]).forEach(function(t){ byArtist[a.rec.artist].tags[t] = 1 });
+    });
+
+    var names = Object.keys(artists)
+      .sort(function(a,b){ return artists[b]-artists[a] }).slice(0,70);
+    var nodes = names.map(function(nm,i){
+      return {nm:nm, r:4+Math.min(11, artists[nm]*1.6), x:0, y:0, vx:0, vy:0,
+              tags:Object.keys(byArtist[nm].tags), recs:byArtist[nm].recs};
+    });
+    var edges = [];
+    for(var i=0;i<nodes.length;i++)
+      for(var j=i+1;j<nodes.length;j++){
+        var shared = nodes[i].tags.filter(function(t){ return nodes[j].tags.indexOf(t)>-1 });
+        if(shared.length >= 2) edges.push([i,j,shared.length]);
+      }
+
+    var W, H, sel = null, drag = null;
+    function size(){
+      var dpr = window.devicePixelRatio || 1;
+      W = cv.clientWidth; H = cv.clientHeight;
+      cv.width = W*dpr; cv.height = H*dpr;
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    size();
+    window.addEventListener("resize", function(){ size() });
+
+    var rnd = (function(a){ return function(){
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296; } })(99);
+    nodes.forEach(function(nd){
+      var a = rnd()*Math.PI*2, d = 40 + rnd()*Math.min(W,H)*0.32;
+      nd.x = W/2 + Math.cos(a)*d; nd.y = H/2 + Math.sin(a)*d;
+    });
+
+    function step(){
+      for(var i=0;i<nodes.length;i++){
+        var a = nodes[i];
+        for(var j=i+1;j<nodes.length;j++){
+          var b = nodes[j], dx = b.x-a.x, dy = b.y-a.y;
+          var d2 = dx*dx+dy*dy || 0.01, d = Math.sqrt(d2);
+          var rep = 420/d2;
+          var fx = dx/d*rep, fy = dy/d*rep;
+          a.vx -= fx; a.vy -= fy; b.vx += fx; b.vy += fy;
+        }
+      }
+      edges.forEach(function(e){
+        var a = nodes[e[0]], b = nodes[e[1]];
+        var dx = b.x-a.x, dy = b.y-a.y, d = Math.sqrt(dx*dx+dy*dy)||0.01;
+        var target = 74, k = 0.0022*Math.min(3,e[2]);
+        var f = (d-target)*k;
+        a.vx += dx/d*f; a.vy += dy/d*f; b.vx -= dx/d*f; b.vy -= dy/d*f;
+      });
+      nodes.forEach(function(nd){
+        nd.vx += (W/2-nd.x)*0.006; nd.vy += (H/2-nd.y)*0.006;
+        nd.vx *= 0.86; nd.vy *= 0.86;
+        if(nd !== drag){ nd.x += nd.vx; nd.y += nd.vy }
+        nd.x = Math.max(nd.r+2, Math.min(W-nd.r-2, nd.x));
+        nd.y = Math.max(nd.r+2, Math.min(H-nd.r-2, nd.y));
+      });
+    }
+
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      ctx.strokeStyle = COL.line; ctx.lineWidth = 1;
+      edges.forEach(function(e){
+        var a = nodes[e[0]], b = nodes[e[1]];
+        var on = sel && (a===sel || b===sel);
+        ctx.globalAlpha = on ? 0.95 : 0.22;
+        ctx.strokeStyle = on ? COL.acc : COL.faint;
+        ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+      nodes.forEach(function(nd){
+        ctx.beginPath(); ctx.arc(nd.x,nd.y,nd.r,0,Math.PI*2);
+        ctx.fillStyle = nd===sel ? COL.acc : COL.dim; ctx.fill();
+      });
+      ctx.fillStyle = COL.fg;
+      ctx.font = '10px ui-monospace,Menlo,monospace';
+      nodes.forEach(function(nd){
+        if(nd.r > 7 || nd===sel){
+          ctx.globalAlpha = nd===sel ? 1 : 0.72;
+          ctx.fillText(nd.nm, nd.x+nd.r+4, nd.y+3);
+        }
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    function at(ev){
+      var b = cv.getBoundingClientRect();
+      var t = ev.touches ? ev.touches[0] : ev;
+      return {x:t.clientX-b.left, y:t.clientY-b.top};
+    }
+    function hit(p){
+      for(var i=nodes.length-1;i>=0;i--){
+        var nd = nodes[i], dx = p.x-nd.x, dy = p.y-nd.y;
+        if(dx*dx+dy*dy < (nd.r+7)*(nd.r+7)) return nd;
+      }
+      return null;
+    }
+    cv.addEventListener("mousedown", function(ev){
+      var nd = hit(at(ev));
+      if(nd){ drag = nd; sel = nd; show(nd) }
+    });
+    window.addEventListener("mousemove", function(ev){
+      if(drag){ var p = at(ev); drag.x = p.x; drag.y = p.y; drag.vx = drag.vy = 0 }
+    });
+    window.addEventListener("mouseup", function(){ drag = null });
+
+    function show(nd){
+      document.getElementById("detail").innerHTML =
+        '<b>'+esc(nd.nm)+'</b> — '+nd.recs.length+' record'+(nd.recs.length>1?'s':'')+' aired'+
+        (nd.tags.length?' · '+esc(nd.tags.slice(0,5).join(", ")):'')+
+        '<br>'+nd.recs.map(esc).join(" · ");
+    }
+
+    for(var w=0; w<420; w++) step();   // open settled, not mid-explosion
+    (function loop(){ step(); draw(); requestAnimationFrame(loop) })();
+  }
+
+  try{ document.documentElement.setAttribute("data-theme", localStorage.getItem("theme")||"dark") }catch(e){}
+})();
+</script>
+</body>
+</html>

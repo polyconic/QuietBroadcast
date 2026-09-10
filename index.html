@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NodeRecord</title>
+<meta name="description" content="One record every six hours. The same one for everyone. No archive, no queue, no algorithm.">
+<style>
+:root{
+  --bg:#0f0f0f; --fg:#f0f0f0; --dim:#8a8a8a; --faint:#5a5a5a; --line:#262626;
+  --accent:#e02b1d;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+:root[data-theme="light"]{
+  --bg:#f0f0f0; --fg:#0f0f0f; --dim:#6b6b6b; --faint:#9a9a9a; --line:#d8d8d8;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);
+  font-size:15px;line-height:1.5;min-height:100vh;display:flex;flex-direction:column;padding:0 24px}
+.wrap{max-width:680px;margin:0 auto;width:100%;flex:1;display:flex;flex-direction:column}
+
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+  padding:26px 0 0;font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--faint)}
+.top a{color:var(--faint);text-decoration:none}
+.top a:hover{color:var(--fg)}
+.lamp{color:var(--accent)}
+
+main{flex:1;display:flex;flex-direction:column;justify-content:center;padding:48px 0 36px}
+.block{font-family:var(--mono);font-size:11.5px;letter-spacing:.2em;color:var(--dim);
+  text-transform:uppercase;margin:0 0 20px}
+.release{font-size:clamp(32px,7.5vw,58px);line-height:1.04;letter-spacing:-.025em;
+  font-weight:600;margin:0}
+.artist{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:14px 0 0}
+.sub{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--faint);
+  text-transform:uppercase;margin:14px 0 0;display:flex;gap:8px;flex-wrap:wrap}
+.sub span:not(:last-child)::after{content:"·";margin-left:8px}
+
+.tracks{margin:32px 0 0;border-top:1px solid var(--line)}
+.tracks li{display:flex;gap:14px;align-items:baseline;padding:9px 0;
+  border-bottom:1px solid var(--line);font-size:14px}
+.tracks{list-style:none;padding:0}
+.tracks .n{font-family:var(--mono);font-size:10.5px;color:var(--faint);width:20px;flex:none}
+.tracks .t{flex:1;color:var(--dim)}
+.tracks .d{font-family:var(--mono);font-size:11px;color:var(--faint)}
+.tracks li.cue .t{color:var(--fg)}
+.tracks li.cue .n{color:var(--accent)}
+
+.out{margin:28px 0 0;display:flex;gap:8px;flex-wrap:wrap}
+.out a{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+  text-decoration:none;color:var(--dim);border:1px solid var(--line);padding:7px 12px}
+.out a:hover{color:var(--fg);border-color:var(--dim)}
+
+footer{border-top:1px solid var(--line);padding:15px 0 28px;font-family:var(--mono);
+  font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+footer button{font:inherit;letter-spacing:inherit;text-transform:inherit;color:var(--faint);
+  background:none;border:0;padding:0;cursor:pointer}
+footer button:hover{color:var(--fg)}
+#next{color:var(--dim)}
+.err{color:var(--accent);font-family:var(--mono);font-size:12px}
+@media(max-width:560px){body{padding:0 18px}main{padding:30px 0 24px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <span><span class="lamp">●</span> NodeRecord</span>
+    <span><a href="log.html">The log</a></span>
+  </div>
+  <main id="card"></main>
+  <footer>
+    <span id="next"></span>
+    <button id="theme" type="button">Light</button>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var EPOCH, SLOT;
+
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c] }) }
+
+  function mmss(s){
+    if(!s) return "";
+    return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+  }
+
+  fetch("data/schedule.json").then(function(r){
+    if(!r.ok) throw new Error("schedule.json missing — run tools/schedule.py");
+    return r.json();
+  }).then(function(sched){
+    EPOCH = Date.parse(sched.epoch + "T00:00:00Z");
+    SLOT  = sched.hours*36e5;
+
+    var block = Math.floor((Date.now() - EPOCH)/SLOT);
+    var q = location.search.match(/[?&]preview=(-?\d+)/);
+    if(q) block = parseInt(q[1],10);
+    if(block < 0) block = 0;
+    if(block >= sched.slots.length) throw new Error("the schedule has run out — run tools/schedule.py");
+
+    var rec = sched.records[ sched.slots[block] ];
+
+    var when = new Date(EPOCH + block*SLOT);
+    var hh = String(when.getUTCHours()).padStart(2,"0");
+    var blockLine = when.toLocaleDateString("en-GB",
+      {weekday:"long", day:"numeric", month:"long", timeZone:"UTC"}) + " · " + hh + ":00";
+
+    var sub = [];
+    if(rec.tags && rec.tags.length) sub = sub.concat(rec.tags.slice(0,3));
+    if(rec.secs) sub.push(Math.round(rec.secs/60)+" min");
+    if(rec.tracks && rec.tracks.length) sub.push(rec.tracks.length+" tracks");
+
+    var list = "";
+    if(rec.tracks && rec.tracks.length){
+      list = '<ul class="tracks">' + rec.tracks.map(function(t,i){
+        return '<li'+(t.title===rec.cue?' class="cue"':'')+'>'+
+          '<span class="n">'+String(i+1).padStart(2,"0")+'</span>'+
+          '<span class="t">'+esc(t.title)+'</span>'+
+          '<span class="d">'+mmss(t.secs)+'</span></li>';
+      }).join("") + '</ul>';
+    }
+
+    var search = encodeURIComponent(rec.artist+" "+rec.release);
+    var out = [];
+    out.push('<a href="https://bandcamp.com/search?q='+search+'">Bandcamp</a>');
+    out.push('<a href="https://www.discogs.com/search/?type=release&q='+search+'">Discogs</a>');
+    if(rec.url) out.push('<a href="'+esc(rec.url)+'">Last.fm</a>');
+
+    document.getElementById("card").innerHTML =
+      '<p class="block">'+esc(blockLine)+'</p>'+
+      '<h1 class="release">'+esc(rec.release)+'</h1>'+
+      '<p class="artist">'+esc(rec.artist)+'</p>'+
+      (sub.length?'<p class="sub">'+sub.map(function(s){return "<span>"+esc(s)+"</span>"}).join("")+'</p>':'')+
+      list+
+      '<p class="out">'+out.join("")+'</p>';
+
+    [].forEach.call(document.querySelectorAll(".out a"),function(a){
+      a.target="_blank"; a.rel="noopener noreferrer" });
+    document.title = rec.release+" — NodeRecord";
+
+    function tick(){
+      var ms = (EPOCH + (block+1)*SLOT) - Date.now();
+      if(ms <= 0){ location.reload(); return }
+      var h = Math.floor(ms/36e5), m = Math.floor(ms%36e5/6e4), s = Math.floor(ms%6e4/1e3);
+      document.getElementById("next").textContent =
+        "Next record in "+h+"h "+String(m).padStart(2,"0")+"m "+String(s).padStart(2,"0")+"s";
+    }
+    tick(); setInterval(tick,1000);
+  }).catch(function(e){
+    document.getElementById("card").innerHTML = '<p class="err">'+esc(e.message)+'</p>';
+  });
+
+  var themeBtn = document.getElementById("theme");
+  function stored(v){ try{ return v===undefined ? localStorage.getItem("theme")
+                                                : localStorage.setItem("theme",v) }catch(e){} }
+  function paint(m){
+    document.documentElement.setAttribute("data-theme",m);
+    themeBtn.textContent = m==="dark" ? "Light" : "Dark";
+  }
+  paint(stored()||"dark");
+  themeBtn.onclick = function(){
+    var m = document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark";
+    stored(m); paint(m);
+  };
+})();
+</script>
+</body>
+</html>
