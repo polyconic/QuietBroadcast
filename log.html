@@ -30,7 +30,8 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--serif);
 @keyframes grain{0%{transform:translate(0,0)}50%{transform:translate(-3%,2%)}100%{transform:translate(2%,-1%)}}
 @media (prefers-reduced-motion:reduce){.grain,.ambient i,.lamp{animation:none}}
 
-.wrap{position:relative;z-index:2;max-width:880px;margin:0 auto}
+.wrap{position:relative;z-index:2;width:100%}
+.col{max-width:880px;margin:0 auto}
 .top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
   padding:26px 0 0;font-size:16px;color:var(--dim)}
 .top a{color:var(--dim);text-decoration:none;transition:color .2s}
@@ -87,6 +88,7 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
     <span>the Log</span>
   </div>
 
+  <div class="col">
   <h1>The Log</h1>
   <p class="lede">Everything the station has put on air, and what it adds up to. The schedule
     is written down rather than worked out on the fly, so what has aired is fixed for good
@@ -94,6 +96,7 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
 
   <p class="stats" id="stats"></p>
   <div id="body"></div>
+  </div>
 </div>
 
 <script>
