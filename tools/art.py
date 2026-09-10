@@ -6,7 +6,7 @@ The URLs come out of the local album.getInfo cache, so this makes no Last.fm API
 calls. Images are downloaded once and served from the repo - the site never asks
 a third party for anything at runtime.
 """
-import glob, hashlib, json, os, sys, urllib.request
+import glob, hashlib, json, os, re, shutil, subprocess, sys, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -17,18 +17,27 @@ SCHED = os.path.join(DATA, "schedule.json")
 
 # Last.fm's placeholder star, served when a release has no real sleeve.
 PLACEHOLDER = "2a96cbd8b46e442fc41c2b86b821562f"
+HAVE_MAGICK = False
 ORDER = ("mega", "extralarge", "large", "medium")
+SIZE_SEG = re.compile(r"(/i/u/)[^/]+/")
+WEBP_Q = "85"          # same setting as the portfolio
+MAX_PX = "800x800>"    # the sleeve renders ~360px; 800 covers retina, ">" never upscales
 
 
 def candidates(images):
-    """Largest first. Last.fm 404s the big sizes for some releases, so keep the
-    smaller ones as fallbacks rather than giving up on the sleeve."""
+    """Largest first. Dropping the size segment gives the original - usually 600px,
+    against 300 for `mega`. Last.fm 404s some sizes, so keep the rest as fallbacks
+    rather than giving up on the sleeve."""
     by = {i.get("size"): i.get("#text") for i in images if i.get("#text")}
     out = []
     for s in ORDER:
         u = by.get(s)
-        if u and PLACEHOLDER not in u and u not in out:
-            out.append(u)
+        if not u or PLACEHOLDER in u:
+            continue
+        original = SIZE_SEG.sub(r"\1", u)
+        for cand in (original, u):
+            if cand not in out:
+                out.append(cand)
     return out
 
 
@@ -56,6 +65,11 @@ def main():
     urls = url_map()
     os.makedirs(ART, exist_ok=True)
 
+    global HAVE_MAGICK
+    HAVE_MAGICK = bool(shutil.which("magick"))
+    if not HAVE_MAGICK:
+        print("  (no imagemagick - sleeves stay in their original format)")
+
     jobs, miss = [], 0
     for r in sched["records"]:
         us = urls.get((r["artist"], r["release"]))
@@ -67,7 +81,7 @@ def main():
         ext = os.path.splitext(u)[1].lower()
         if ext not in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
             ext = ".jpg"
-        name = hashlib.sha1(u.encode()).hexdigest()[:16] + ext
+        name = hashlib.sha1(u.encode()).hexdigest()[:16] + ".webp"
         r["art"] = "art/" + name
         if not os.path.exists(os.path.join(ART, name)):
             jobs.append((r, us, os.path.join(ART, name)))
@@ -80,6 +94,7 @@ def main():
     def grab(job):
         r, us, path = job
         last = None
+        tmp = path + ".src"
         for u in us:
             try:
                 req = urllib.request.Request(u, headers={"User-Agent": "NodeRecord/1.0"})
@@ -87,10 +102,20 @@ def main():
                     blob = resp.read()
                 if len(blob) < 500:
                     raise ValueError("suspiciously small")
-                open(path, "wb").write(blob)
+                open(tmp, "wb").write(blob)
+                if HAVE_MAGICK:
+                    subprocess.run(["magick", tmp, "-resize", MAX_PX,
+                                    "-quality", WEBP_Q,
+                                    "-define", "webp:method=6", path],
+                                   check=True, capture_output=True)
+                    os.remove(tmp)
+                else:
+                    shutil.move(tmp, path)
                 return
             except Exception as e:
                 last = e
+                if os.path.exists(tmp):
+                    os.remove(tmp)
         failed.append((r, last))
         r["art"] = ""
 

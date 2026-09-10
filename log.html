@@ -49,7 +49,7 @@ h1{font-weight:400;font-size:clamp(38px,5.5vw,64px);letter-spacing:-.015em;line-
 .stats{color:var(--dim)}
 
 h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px 0 16px}
-#graph{width:100%;height:520px;display:block;cursor:grab}
+#graph{width:100%;height:440px;display:block;cursor:grab}
 #graph:active{cursor:grabbing}
 .cap{font-style:italic;color:var(--faint);font-size:15px;margin:8px 0 0}
 #detail{min-height:44px;margin:12px 0 0;color:var(--dim);font-size:16px}
@@ -216,73 +216,120 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
       dim:   css.getPropertyValue("--dim").trim(),
       fg:    css.getPropertyValue("--fg").trim(),
       acc:   css.getPropertyValue("--accent").trim(),
+      bg:    css.getPropertyValue("--bg").trim(),
       serif: css.getPropertyValue("--serif").trim()
     };
 
     var byArtist = {};
     aired.forEach(function(a){
-      (byArtist[a.rec.artist] = byArtist[a.rec.artist] || {tags:{}, recs:[]});
-      if(byArtist[a.rec.artist].recs.indexOf(a.rec.release) < 0)
-        byArtist[a.rec.artist].recs.push(a.rec.release);
-      (a.rec.tags||[]).forEach(function(t){ byArtist[a.rec.artist].tags[t] = 1 });
+      if(!realArtist(a.rec.artist)) return;
+      var e = byArtist[a.rec.artist] = byArtist[a.rec.artist] || {tags:{}, recs:[]};
+      if(e.recs.indexOf(a.rec.release) < 0) e.recs.push(a.rec.release);
+      (a.rec.tags||[]).forEach(function(t){ e.tags[t] = 1 });
     });
 
     var names = Object.keys(artists)
-      .sort(function(a,b){ return artists[b]-artists[a] }).slice(0,70);
+      .sort(function(a,b){ return artists[b]-artists[a] || a.localeCompare(b) })
+      .slice(0,64)
+      .filter(function(nm){ return byArtist[nm] });
     var nodes = names.map(function(nm){
-      return {nm:nm, r:3.5+Math.min(10, artists[nm]*1.5), x:0, y:0, vx:0, vy:0,
+      return {nm:nm, w:artists[nm], r:5, x:0, y:0, vx:0, vy:0,
               tags:Object.keys(byArtist[nm].tags), recs:byArtist[nm].recs};
     });
-    var edges = [];
-    for(var i=0;i<nodes.length;i++)
-      for(var j=i+1;j<nodes.length;j++){
-        var shared = nodes[i].tags.filter(function(t){ return nodes[j].tags.indexOf(t)>-1 });
-        if(shared.length >= 2) edges.push([i,j,shared.length]);
-      }
+    if(!nodes.length) return;
+    var maxw = Math.max.apply(null, nodes.map(function(n){ return n.w }));
+    nodes.forEach(function(nd){ nd.r = 4 + 8*Math.sqrt(nd.w/maxw) });
 
-    var W, H, sel = null, drag = null;
+    var edges = [];
+    for(var i=0;i<nodes.length;i++){
+      for(var j=i+1;j<nodes.length;j++){
+        var shared = 0, ti = nodes[i].tags;
+        for(var t=0;t<ti.length;t++) if(nodes[j].tags.indexOf(ti[t])>-1) shared++;
+        if(shared >= 2) edges.push([i,j,shared]);
+      }
+    }
+
+    var W, H, sel = null, hover = null, drag = null, spacing = 90;
     function size(){
       var dpr = window.devicePixelRatio || 1;
       W = cv.clientWidth; H = cv.clientHeight;
       cv.width = W*dpr; cv.height = H*dpr;
       ctx.setTransform(dpr,0,0,dpr,0,0);
+      /* aim for one node per cell of the canvas, so it fills the frame
+         instead of huddling in the middle */
+      spacing = Math.max(50, Math.sqrt(W*H/nodes.length) * 0.76);
     }
     size();
-    window.addEventListener("resize", size);
+    window.addEventListener("resize", function(){ size() });
 
     var seed = 99;
     function rnd(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0;
       var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
       t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-      return ((t ^ t >>> 14) >>> 0) / 4294967296 }
+      return ((t ^ t >>> 14) >>> 0) / 4294967296; }
     nodes.forEach(function(nd){
-      var a = rnd()*Math.PI*2, d = 40 + rnd()*Math.min(W,H)*0.32;
-      nd.x = W/2 + Math.cos(a)*d; nd.y = H/2 + Math.sin(a)*d;
+      nd.x = W*0.5 + (rnd()-0.5)*W*0.8;
+      nd.y = H*0.5 + (rnd()-0.5)*H*0.8;
     });
 
     function step(){
+      /* Repulsion only acts on near neighbours. Applied to every pair it sums
+         outward, inflating the layout until the walls stop it and everyone
+         ends up lined along the edges. */
+      var rep = spacing*spacing*1.0, cut = spacing*2.2, cut2 = cut*cut;
       for(var i=0;i<nodes.length;i++){
         var a = nodes[i];
         for(var j=i+1;j<nodes.length;j++){
           var b = nodes[j], dx = b.x-a.x, dy = b.y-a.y;
-          var d2 = dx*dx+dy*dy || 0.01, d = Math.sqrt(d2);
-          var rep = 420/d2, fx = dx/d*rep, fy = dy/d*rep;
+          var d2 = dx*dx+dy*dy || 0.01;
+          if(d2 > cut2) continue;
+          var d = Math.sqrt(d2);
+          var f = Math.min(rep/d2, 3) * (1 - d/cut);
+          var fx = dx/d*f, fy = dy/d*f;
           a.vx -= fx; a.vy -= fy; b.vx += fx; b.vy += fy;
         }
       }
       edges.forEach(function(e){
         var a = nodes[e[0]], b = nodes[e[1]];
         var dx = b.x-a.x, dy = b.y-a.y, d = Math.sqrt(dx*dx+dy*dy)||0.01;
-        var f = (d-74)*0.0022*Math.min(3,e[2]);
+        var f = (d - spacing) * 0.0016 * Math.min(3, e[2]);
         a.vx += dx/d*f; a.vy += dy/d*f; b.vx -= dx/d*f; b.vy -= dy/d*f;
       });
       nodes.forEach(function(nd){
-        nd.vx += (W/2-nd.x)*0.006; nd.vy += (H/2-nd.y)*0.006;
-        nd.vx *= 0.86; nd.vy *= 0.86;
+        nd.vx += (W/2-nd.x)*0.0011; nd.vy += (H/2-nd.y)*0.0011;
+        nd.vx *= 0.85; nd.vy *= 0.85;
         if(nd !== drag){ nd.x += nd.vx; nd.y += nd.vy }
-        nd.x = Math.max(nd.r+2, Math.min(W-nd.r-2, nd.x));
-        nd.y = Math.max(nd.r+2, Math.min(H-nd.r-2, nd.y));
       });
+      /* hard separation, so circles never sit on top of one another */
+      for(var k=0;k<nodes.length;k++){
+        var a2 = nodes[k];
+        for(var m=k+1;m<nodes.length;m++){
+          var b2 = nodes[m], dx2 = b2.x-a2.x, dy2 = b2.y-a2.y;
+          var dd = Math.sqrt(dx2*dx2+dy2*dy2) || 0.01;
+          var min = a2.r + b2.r + 9;
+          if(dd < min){
+            var push = (min-dd)/2, ux = dx2/dd, uy = dy2/dd;
+            if(a2 !== drag){ a2.x -= ux*push; a2.y -= uy*push }
+            if(b2 !== drag){ b2.x += ux*push; b2.y += uy*push }
+          }
+        }
+      }
+      /* ease away from the walls rather than sliding along them, which
+         otherwise lines everyone up against the bottom edge */
+      var pad = 24;
+      nodes.forEach(function(nd){
+        if(nd === drag) return;
+        if(nd.x < pad)      nd.x += (pad - nd.x) * 0.06;
+        if(nd.x > W - pad)  nd.x -= (nd.x - (W - pad)) * 0.06;
+        if(nd.y < pad)      nd.y += (pad - nd.y) * 0.06;
+        if(nd.y > H - pad)  nd.y -= (nd.y - (H - pad)) * 0.06;
+        nd.x = Math.max(nd.r+3, Math.min(W-nd.r-3, nd.x));
+        nd.y = Math.max(nd.r+3, Math.min(H-nd.r-3, nd.y));
+      });
+    }
+
+    function overlaps(a, b){
+      return !(a.x2 < b.x1 || b.x2 < a.x1 || a.y2 < b.y1 || b.y2 < a.y1);
     }
 
     function draw(){
@@ -290,22 +337,50 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
       ctx.lineWidth = 1;
       edges.forEach(function(e){
         var a = nodes[e[0]], b = nodes[e[1]];
-        var on = sel && (a===sel || b===sel);
-        ctx.globalAlpha = on ? 0.95 : 0.18;
-        ctx.strokeStyle = on ? COL.acc : COL.faint;
+        var lit = (sel && (a===sel || b===sel)) || (hover && (a===hover || b===hover));
+        ctx.globalAlpha = lit ? 0.9 : 0.13;
+        ctx.strokeStyle = lit ? COL.acc : COL.faint;
         ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
       });
       ctx.globalAlpha = 1;
       nodes.forEach(function(nd){
         ctx.beginPath(); ctx.arc(nd.x,nd.y,nd.r,0,Math.PI*2);
-        ctx.fillStyle = nd===sel ? COL.acc : COL.dim; ctx.fill();
+        ctx.fillStyle = (nd===sel||nd===hover) ? COL.acc : COL.dim;
+        ctx.globalAlpha = (nd===sel||nd===hover) ? 1 : 0.72;
+        ctx.fill();
       });
-      ctx.fillStyle = COL.fg;
-      ctx.font = 'italic 12px '+COL.serif;
-      nodes.forEach(function(nd){
-        if(nd.r > 6.5 || nd===sel){
-          ctx.globalAlpha = nd===sel ? 1 : 0.7;
-          ctx.fillText(nd.nm, nd.x+nd.r+5, nd.y+4);
+      ctx.globalAlpha = 1;
+
+      /* Labels are placed biggest-first and skipped when they would collide,
+         so names never print through one another. */
+      ctx.font = 'italic 12.5px ' + COL.serif;
+      ctx.textBaseline = "middle";
+      var taken = [], order = nodes.slice().sort(function(a,b){ return b.r - a.r });
+      if(hover) order = [hover].concat(order.filter(function(n){ return n!==hover }));
+      if(sel) order = [sel].concat(order.filter(function(n){ return n!==sel }));
+      order.forEach(function(nd){
+        var forced = (nd===hover || nd===sel);
+        if(!forced && nd.r < 6) return;
+        var tw = ctx.measureText(nd.nm).width, th = 13;
+        var spots = [[nd.x+nd.r+6, nd.y], [nd.x-nd.r-6-tw, nd.y],
+                     [nd.x-tw/2, nd.y-nd.r-10], [nd.x-tw/2, nd.y+nd.r+10]];
+        for(var i=0;i<spots.length;i++){
+          var x = spots[i][0], y = spots[i][1];
+          if(x < 2 || x+tw > W-2 || y-th/2 < 2 || y+th/2 > H-2) continue;
+          var box = {x1:x-2, y1:y-th/2, x2:x+tw+2, y2:y+th/2};
+          var clash = false;
+          for(var j=0;j<taken.length;j++) if(overlaps(box, taken[j])){ clash = true; break }
+          if(clash && !forced) continue;
+          if(forced){
+            ctx.globalAlpha = 0.9; ctx.fillStyle = COL.bg;
+            ctx.fillRect(box.x1-2, box.y1-1, (box.x2-box.x1)+4, (box.y2-box.y1)+2);
+            ctx.globalAlpha = 1;
+          }
+          ctx.fillStyle = forced ? COL.fg : COL.dim;
+          ctx.globalAlpha = forced ? 1 : 0.85;
+          ctx.fillText(nd.nm, x, y);
+          taken.push(box);
+          break;
         }
       });
       ctx.globalAlpha = 1;
@@ -317,16 +392,23 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
       return {x:t.clientX-b.left, y:t.clientY-b.top};
     }
     function hit(p){
-      for(var i=nodes.length-1;i>=0;i--){
-        var nd = nodes[i], dx = p.x-nd.x, dy = p.y-nd.y;
-        if(dx*dx+dy*dy < (nd.r+7)*(nd.r+7)) return nd;
+      var best = null, bd = 1e9;
+      for(var i=0;i<nodes.length;i++){
+        var nd = nodes[i], dx = p.x-nd.x, dy = p.y-nd.y, d = dx*dx+dy*dy;
+        if(d < (nd.r+9)*(nd.r+9) && d < bd){ bd = d; best = nd }
       }
-      return null;
+      return best;
     }
     cv.addEventListener("mousedown", function(ev){
       var nd = hit(at(ev));
       if(nd){ drag = nd; sel = nd; show(nd) }
     });
+    cv.addEventListener("mousemove", function(ev){
+      if(drag) return;
+      var nd = hit(at(ev));
+      if(nd !== hover){ hover = nd; cv.style.cursor = nd ? "pointer" : "grab" }
+    });
+    cv.addEventListener("mouseleave", function(){ hover = null });
     window.addEventListener("mousemove", function(ev){
       if(drag){ var p = at(ev); drag.x = p.x; drag.y = p.y; drag.vx = drag.vy = 0 }
     });
@@ -339,7 +421,7 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
         (nd.tags.length ? '. Mostly '+esc(nd.tags.slice(0,4).join(", "))+'.' : '.');
     }
 
-    for(var w=0; w<420; w++) step();
+    for(var w=0; w<600; w++) step();
     (function loop(){ step(); draw(); requestAnimationFrame(loop) })();
   }
 

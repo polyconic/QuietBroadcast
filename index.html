@@ -60,8 +60,8 @@ body{
   animation:pulse 3.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-main{flex:1; display:grid; grid-template-columns:minmax(0,440px) minmax(0,1fr);
-  gap:clamp(32px,6vw,88px); align-items:center; padding:clamp(28px,6vh,72px) 0}
+main{flex:1; display:grid; grid-template-columns:minmax(0,360px) minmax(0,1fr);
+  gap:clamp(30px,5vw,72px); align-items:center; padding:clamp(28px,6vh,72px) 0}
 
 .sleeve{position:relative; width:100%; aspect-ratio:1;
   background:rgba(128,128,128,.06);
@@ -107,7 +107,7 @@ footer button:hover{color:var(--fg)}
 
 @media(max-width:860px){
   main{grid-template-columns:1fr; gap:34px; align-items:start; padding:28px 0 36px}
-  .sleeve{max-width:360px}
+  .sleeve{max-width:300px}
   .tracks{max-width:none}
 }
 </style>

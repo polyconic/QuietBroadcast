@@ -104,9 +104,20 @@ the network graph.
 | `log.html` | Everything aired, in prose; the artist network; a journal of recent days. |
 | `tools/art.py` | Sleeve art from the local cache into `art/`. |
 
-The network graph is a hand-rolled force simulation on canvas — no library. Edges
-join artists sharing **two or more** tags; one shared tag connects everything to
-everything. It pre-runs 420 steps before the first paint so it opens settled.
+The network graph is a hand-rolled force simulation on canvas — no library. Edges join
+artists sharing **two or more** tags; one shared tag connects everything to everything.
+It pre-runs 600 steps so it opens settled. Three things it needs to stay readable, all
+of which it got wrong first time round:
+
+- **Repulsion must have a cutoff** (`spacing*2.2`). Applied to every pair it sums
+  outward, inflating the layout until the walls stop it and every node ends up lined
+  along the edges.
+- **Hard separation after integration**, so circles never overlap, plus a soft inward
+  nudge near the walls rather than only a clamp — a clamp alone makes nodes slide along
+  the edge and queue up.
+- **Labels are placed biggest-first and skipped on collision**, trying right, left,
+  above, below. Without that, names print straight through one another. Hover or
+  selection forces a label through with a background plate.
 
 `?preview=N` renders slot N on either page. Undocumented dev affordance, not a feature.
 
@@ -138,9 +149,15 @@ default grey.
 Film grain is an inline SVG turbulence, ~4.5% opacity. All motion respects
 `prefers-reduced-motion`.
 
-Sleeves live in `art/` via `tools/art.py` (reads the local API cache, no API calls;
-12-wide downloads; falls back through image sizes because Last.fm 404s the largest for
-some releases). 317 of 369 have one. The rest show "no sleeve survives".
+**Sleeves** live in `art/` via `tools/art.py` — it reads the local API cache and makes
+no API calls, downloads 12-wide, and converts with ImageMagick to **webp q85, capped at
+800px** (the sleeve renders ~360px, so 800 covers retina; `>` never upscales).
+
+Two things about Last.fm images worth keeping: `mega` and `extralarge` are the *same*
+300px file, but **stripping the size segment from the URL** (`/i/u/300x300/x.png` →
+`/i/u/x.png`) returns the original, usually 600–1400px. And some sizes 404 per release,
+so `candidates()` keeps the whole ladder as fallbacks. Records with no usable sleeve are
+dropped from the pool entirely.
 
 ## Theme
 
