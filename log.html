@@ -121,7 +121,9 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
 .entry .p{font-style:italic;color:var(--faint);font-size:15px;white-space:nowrap}
 .entry.now .p{color:var(--accent)}
 .foot{margin:60px 0 0;font-style:italic;color:var(--faint);font-size:15px}
-.foot a{color:var(--dim);text-decoration:none}
+.foot a{color:var(--dim);text-decoration:none;transition:color .2s}
+.foot a:hover{color:var(--fg)}
+.foot .dot{opacity:.5}
 .err{color:var(--accent);font-family:var(--sans);font-size:13px}
 @media(max-width:620px){ #graph{height:380px} .entry{grid-template-columns:44px 1fr} .entry .p{grid-column:2} }
 </style>
@@ -296,7 +298,11 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
       (lengthLine?'<h2>How long they run</h2><p class="prose">'+lengthLine+'</p>':'')+
       '<h2>Who keeps coming back</h2><p class="prose">'+mostLine+'</p>'+
       '<h2>The last few days</h2>'+journal+
-      '<p class="foot"><a href="index.html">Back to what\'s on now.</a></p>';
+      '<p class="foot"><a href="index.html">Back to what\'s on now.</a>'+
+      '<span class="dot"> · </span>'+
+      '<a href="https://www.last.fm" target="_blank" rel="noopener noreferrer">Data from Last.fm</a>'+
+      '<span class="dot"> · </span>'+
+      '<a href="mailto:gregor.art@pm.me">Contact</a></p>';
 
     graph(artists, aired);
   }).catch(function(e){

@@ -159,6 +159,11 @@ main{flex:1; display:grid; grid-template-columns:minmax(0,360px) minmax(0,1fr);
 footer{border-top:1px solid var(--line); padding:16px 0 30px; font-size:15px;
   color:var(--dim); display:flex; justify-content:space-between; gap:16px;
   flex-wrap:wrap; align-items:baseline; font-style:italic}
+.colophon{display:flex; gap:10px; align-items:baseline; font-style:normal;
+  font-size:14px; color:var(--faint)}
+.colophon a{color:var(--faint); text-decoration:none; transition:color .2s}
+.colophon a:hover{color:var(--fg)}
+.colophon .dot{opacity:.5}
 footer button{font:inherit; color:var(--faint); background:none; border:0; padding:0;
   cursor:pointer; transition:color .2s; font-style:normal}
 footer button:hover{color:var(--fg)}
@@ -183,6 +188,7 @@ footer button:hover{color:var(--fg)}
   <main id="card"></main>
   <footer>
     <span id="next"></span>
+    <span class="colophon"><a href="https://www.last.fm" target="_blank" rel="noopener noreferrer">Data from Last.fm</a><span class="dot">·</span><a href="mailto:gregor.art@pm.me">Contact</a></span>
     <button id="theme" type="button">light</button>
   </footer>
 </div>

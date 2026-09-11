@@ -224,6 +224,32 @@ Two things about Last.fm images worth keeping: `mega` and `extralarge` are the *
 so `candidates()` keeps the whole ladder as fallbacks. Records with no usable sleeve are
 dropped from the pool entirely.
 
+## Licensing and attribution
+
+Last.fm's API terms grant a **non-commercial** licence to copy, publish and distribute
+their data, conditional on crediting them. Two things follow, and neither should be
+quietly dropped:
+
+- **"Data from Last.fm" links in every footer.** This is required, not decorative.
+  Clause 2.7 also wants album links pointing at the specific catalogue page, which the
+  per-record Last.fm link already does.
+- **No Last.fm logo anywhere, deliberately.** Clause 2.7 demands one of their
+  "powered by AudioScrobbler" buttons from `last.fm/resources` — that page is a 404 and
+  the branding is long retired, so the clause is unfulfillable as written. Clause 7.1
+  requires *prior written approval* for any use of their marks, so plain text is strictly
+  safer than a logo. Don't add one.
+- **The licence dies the moment the site earns money.** Ads, a tip jar, anything — that
+  needs a commercial agreement from `partners@last.fm` first.
+- There is a **100 MB "Reasonable Usage Cap"** on Last.fm data stored or published.
+  The repo publishes ~48 MB; `data/.cache` is another ~94 MB locally. The cache is
+  disposable — `refresh.sh` refetches what it needs — so prune it if this ever matters.
+
+**Sleeve art is the real exposure, and Last.fm's licence does not cover it.** Labels and
+designers own those covers; Last.fm can only license what it holds. The fair-use posture
+is reasonable — non-commercial, editorial, 800px cap, and every entry links out to buy —
+but it rests on staying non-commercial and on being reachable, which is what the
+`gregor.art@pm.me` contact link is for. Keep it.
+
 ## Theme
 
 Shared `localStorage` key `theme`, `light`/`dark`, dark by default, same as the other
