@@ -56,13 +56,18 @@ but removing it from the array corrupts every past slot.
 ## Rebuilding the pool
 
 ```bash
-python3 tools/pull.py albums
-python3 tools/pull.py enrich --min 2
-python3 tools/pull.py artists
-python3 tools/schedule.py --min-plays-per-track 1 --min-tracks 3 --max-listeners 100000 --genre-fame-pct 0
+./refresh.sh
 ```
 
-Safe to run any time. New records join the future; aired slots never move.
+That is the whole thing — it runs the four stages, fetches sleeves, and prints which
+records are new. The filter values live at the top of the script. Safe to run any time:
+aired slots are frozen, only the future is rebuilt, and nothing publishes until you
+commit and push.
+
+**Nothing is automatic.** The site never calls Last.fm — the key would end up in the
+browser — so new scrobbles do nothing until `refresh.sh` is run by hand. The schedule
+holds 180 days, and the failure mode is quiet: it doesn't break when it runs out, it
+just starts repeating. Run it every month or two.
 
 The API key lives at `~/.lastfm-key` (mode 600) and is read only by `tools/pull.py`
 on Greg's machine. **It must never enter the repo or any client-side JS** — the site
@@ -143,10 +148,13 @@ crossfades. No JS, no library. Browsers without it get a plain fade via
 
 **Social and search metadata** lives in each page's head: Open Graph, Twitter card,
 canonical, and WebSite JSON-LD on the front page, with `robots.txt` and `sitemap.xml` in
-the root. `og.png` is `meta.png` padded to 978x512 (exactly 1.91:1) — the raw 630x512
-gets letterboxed or cropped by iMessage and Twitter. Favicons are generated from
-`FAVICON.png`; the 180px apple-touch icon is flattened onto black because iOS ignores
-transparency and fringes it.
+the root. Images live in `assets/` — `assets/og.png` is `assets/meta.png` padded to
+978x512 (exactly 1.91:1), since the raw 630x512 gets letterboxed or cropped by iMessage
+and Twitter. Favicons are generated from `assets/FAVICON.png`; the 180px apple-touch icon
+is flattened onto black because iOS ignores transparency and fringes it. **`favicon.ico`
+stays at the repo root on purpose** — browsers, crawlers and link previewers probe
+`/favicon.ico` directly without reading the `<link>` tags. `art/` is separate: that's
+record sleeves, referenced by relative path from `schedule.json`.
 
 The network graph is a hand-rolled force simulation on canvas — no library. Edges join
 artists sharing **two or more** tags; one shared tag connects everything to everything.
