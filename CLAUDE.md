@@ -130,6 +130,13 @@ the network graph.
   like "electronic" — on an electronic-only station that word says nothing. Where
   Last.fm is simply wrong, `data/tag_overrides.json` maps `"Artist - Release"` to a tag
   list and wins outright. That file is curation, not a workaround; expect it to grow.
+- **The crowd spells the same genre several ways.** `oldschool techno` and
+  `oldschool-techno` were appearing side by side on the same record, and the tag cloud
+  counted them separately. `canon_tag()` folds `&`→`and`, turns `-_/` into spaces and
+  collapses whitespace, then `tidy_tags()` dedupes. **`ELECTRONIC_TAGS` and
+  `GENRE_FAMILIES` are folded through the same function when compared** — without that,
+  normalising the tags would silently drop `lo-fi`, `2-step` and friends out of the pool,
+  because the gate would be matching hyphenated spellings that no longer exist.
 
 ## Pages
 

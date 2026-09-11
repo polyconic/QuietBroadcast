@@ -64,7 +64,7 @@ ELECTRONIC_TAGS = {
 
 
 def is_electronic(tags):
-    return bool(ELECTRONIC_TAGS & set(tags))
+    return bool({canon_tag(t) for t in ELECTRONIC_TAGS} & {canon_tag(t) for t in tags})
 
 
 # Last.fm tags are crowd-written, so they arrive full of years, personal notes and
@@ -81,14 +81,23 @@ TAG_SINK = {"electronic", "electronica", "dance", "experimental", "instrumental"
             "alternative", "indie", "new age", "chill", "electronic music"}
 
 
+def canon_tag(t):
+    """Fold the spelling variants Last.fm's crowd uses for the same genre, so
+    "oldschool-techno" and "oldschool techno" stop appearing side by side."""
+    t = (t or "").lower().replace("&", "and")
+    t = re.sub(r"[-_/]+", " ", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
 def tidy_tags(tags, artist):
     """Drop what isn't a genre, then float the specific above the generic."""
-    artist_l = artist.lower()
-    out = []
+    artist_l = canon_tag(artist)
+    junk = {canon_tag(x) for x in TAG_JUNK}
+    sink = {canon_tag(x) for x in TAG_SINK}
+    out, seen = [], set()
     for t in tags:
-        t = (t or "").strip()
-        low = t.lower()
-        if not low or low in TAG_JUNK:
+        low = canon_tag(t)
+        if not low or low in junk or low in seen:
             continue
         if re.fullmatch(r"\d{2,4}s?", low):          # 1999, 90s, 1990s
             continue
@@ -96,15 +105,16 @@ def tidy_tags(tags, artist):
             continue
         if len(low) > 24 or len(low.split()) > 3:     # "has me dancing even now"
             continue
+        seen.add(low)
         out.append(low)
     # stable: keeps Last.fm's order inside each group, sinks the umbrellas
-    return sorted(out, key=lambda t: 1 if t in TAG_SINK else 0)[:6]
+    return sorted(out, key=lambda t: 1 if t in sink else 0)[:6]
 
 
 def family(r):
-    t = set(r.get("tags") or [])
+    t = {canon_tag(x) for x in (r.get("tags") or [])}
     for name, tags in GENRE_FAMILIES.items():
-        if t & set(tags):
+        if t & {canon_tag(x) for x in tags}:
             return name
     return "other"
 
