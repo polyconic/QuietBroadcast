@@ -201,10 +201,19 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
     return list.slice(0,-1).join(", ") + " and " + list[list.length-1];
   }
 
-  fetch("data/schedule.json").then(function(r){
-    if(!r.ok) throw new Error("schedule.json missing - run tools/schedule.py");
-    return r.json();
-  }).then(function(sched){
+  var SIMILAR = {};
+  Promise.all([
+    fetch("data/schedule.json").then(function(r){
+      if(!r.ok) throw new Error("schedule.json missing - run tools/schedule.py");
+      return r.json();
+    }),
+    /* Who sits near whom comes from listening behaviour, not tags. If the file
+       isn't there the graph simply draws no lines rather than inventing them. */
+    fetch("data/similar.json").then(function(r){ return r.ok ? r.json() : {} })
+                              .catch(function(){ return {} })
+  ]).then(function(both){
+    var sched = both[0];
+    SIMILAR = both[1] || {};
     var ep = sched.epoch.split("-");
     EPOCH_DAY = Date.UTC(+ep[0], +ep[1]-1, +ep[2]);
     PER_DAY = 24 / sched.hours;
@@ -326,14 +335,28 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
     var maxw = Math.max.apply(null, nodes.map(function(n){ return n.w }));
     nodes.forEach(function(nd){ nd.r = 4 + 8*Math.sqrt(nd.w/maxw) });
 
-    var edges = [];
-    for(var i=0;i<nodes.length;i++){
-      for(var j=i+1;j<nodes.length;j++){
-        var shared = 0, ti = nodes[i].tags;
-        for(var t=0;t<ti.length;t++) if(nodes[j].tags.indexOf(ti[t])>-1) shared++;
-        if(shared >= 2) edges.push([i,j,shared]);
-      }
-    }
+    /* An edge means Last.fm's listening data actually places these two near each
+       other. Shared tags used to do this and were worthless - nearly everything
+       here is tagged "electronic", so it drew lines between artists with nothing
+       in common. */
+    var MATCH_MIN = 0.2;
+    var byName = {};
+    nodes.forEach(function(nd, i){ byName[nd.nm.toLowerCase()] = i });
+    var pairs = {};
+    nodes.forEach(function(nd, i){
+      (SIMILAR[nd.nm] || []).forEach(function(p){
+        var m = p[1];
+        if(m < MATCH_MIN) return;
+        var j = byName[String(p[0]).toLowerCase()];
+        if(j === undefined || j === i) return;
+        var k = i < j ? i+"-"+j : j+"-"+i;
+        pairs[k] = Math.max(pairs[k] || 0, m);   // similarity isn't symmetrical
+      });
+    });
+    var edges = Object.keys(pairs).map(function(k){
+      var ab = k.split("-");
+      return [ +ab[0], +ab[1], pairs[k] ];
+    });
 
     var W, H, sel = null, hover = null, drag = null, spacing = 90;
     function size(){
@@ -378,7 +401,7 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
       edges.forEach(function(e){
         var a = nodes[e[0]], b = nodes[e[1]];
         var dx = b.x-a.x, dy = b.y-a.y, d = Math.sqrt(dx*dx+dy*dy)||0.01;
-        var f = (d - spacing) * 0.0016 * Math.min(3, e[2]);
+        var f = (d - spacing) * 0.0016 * (1 + 2*e[2]);
         a.vx += dx/d*f; a.vy += dy/d*f; b.vx -= dx/d*f; b.vy -= dy/d*f;
       });
       nodes.forEach(function(nd){
@@ -528,8 +551,7 @@ h2{font-weight:400;font-style:italic;font-size:18px;color:var(--dim);margin:64px
     function show(nd){
       document.getElementById("detail").innerHTML =
         '<b>'+esc(nd.nm)+'</b> — '+ (nd.recs.length===1 ? 'one record' : words(nd.recs.length)+' records') +
-        ' so far: '+ nd.recs.map(function(r){ return '<i>'+esc(r)+'</i>' }).join(", ") +
-        (nd.tags.length ? '. Mostly '+esc(nd.tags.slice(0,4).join(", "))+'.' : '.');
+        ' so far: '+ nd.recs.map(function(r){ return '<i>'+esc(r)+'</i>' }).join(", ") + '.';
     }
 
     for(var w=0; w<600; w++) step();

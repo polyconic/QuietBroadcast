@@ -150,9 +150,47 @@ def artist_tags(rows):
     return out
 
 
+def similar_artists(rows):
+    """Who actually sits near whom, from listening behaviour rather than tags.
+    Tag overlap is worthless here - nearly everything in the pool is tagged
+    electronic, so it linked artists with nothing to do with each other."""
+    os.makedirs(CACHE, exist_ok=True)
+    names = sorted({r["artist"] for r in rows})
+    print("  fetching similar artists for %d names" % len(names), flush=True)
+    out = {}
+    for i, nm in enumerate(names, 1):
+        slug = "similar--" + urllib.parse.quote(nm.replace("/", "_"), safe="")[:170]
+        path = os.path.join(CACHE, slug + ".json")
+        if os.path.exists(path):
+            info = json.load(open(path))
+        else:
+            try:
+                info = call("artist.getSimilar", artist=nm, autocorrect=1, limit=40)
+            except Exception as e:
+                print("    ! %s (%s)" % (nm, e), flush=True)
+                info = {}
+            json.dump(info, open(path, "w"))
+            time.sleep(0.22)
+        sim = listify(info.get("similarartists"), "artist")
+        pairs = []
+        for x in sim:
+            if not isinstance(x, dict) or not x.get("name"):
+                continue
+            try:
+                m = float(x.get("match") or 0)
+            except (TypeError, ValueError):
+                m = 0.0
+            if m > 0:
+                pairs.append([x["name"], round(m, 3)])
+        out[nm] = pairs
+        if i % 100 == 0:
+            print("    %d/%d" % (i, len(names)), flush=True)
+    return out
+
+
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("stage", choices=["albums", "enrich", "artists"])
+    p.add_argument("stage", choices=["albums", "enrich", "artists", "similar"])
     p.add_argument("--user", default="greggorrr")
     p.add_argument("--min", type=int, default=10)
     a = p.parse_args()
@@ -166,6 +204,16 @@ def main():
         print("\n  %d albums -> data/albums.raw.json" % len(rows))
         histogram(rows)
         print("\n  then: python3 tools/pull.py enrich --min N")
+    elif a.stage == "similar":
+        src = os.path.join(DATA, "albums.json")
+        if not os.path.exists(src):
+            sys.exit("Run the enrich stage first.")
+        sim = similar_artists(json.load(open(src)))
+        json.dump(sim, open(os.path.join(DATA, "similar.json"), "w"),
+                  indent=0, ensure_ascii=False)
+        n = sum(1 for v in sim.values() if v)
+        print("\n  %d of %d artists have similarity data -> data/similar.json"
+              % (n, len(sim)))
     elif a.stage == "artists":
         src = os.path.join(DATA, "albums.json")
         if not os.path.exists(src):

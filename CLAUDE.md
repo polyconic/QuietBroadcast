@@ -156,8 +156,16 @@ stays at the repo root on purpose** — browsers, crawlers and link previewers p
 `/favicon.ico` directly without reading the `<link>` tags. `art/` is separate: that's
 record sleeves, referenced by relative path from `schedule.json`.
 
-The network graph is a hand-rolled force simulation on canvas — no library. Edges join
-artists sharing **two or more** tags; one shared tag connects everything to everything.
+The network graph is a hand-rolled force simulation on canvas — no library. **Edges come
+from `artist.getSimilar` (`data/similar.json`), never from tags.** Tag overlap was the
+first attempt and it was worthless: nearly every record here is tagged "electronic", so
+it drew lines between Felly and Cut Chemist, and Orbe and Mouse on Mars. Listening data
+gets it right — Orbe joins Luigi Tozzi at 0.64 and neither bad pair connects at all.
+Similarity isn't symmetrical, so the two directions are max'd; the floor is 0.2 match.
+An artist with no link inside the pool correctly floats alone — don't "fix" that.
+
+The node detail deliberately lists only the records, **no genre line**. It used to say
+"Mostly techno, sludge, post-metal" about Orbe, from the same tags that can't be trusted.
 It pre-runs 600 steps so it opens settled. Three things it needs to stay readable, all
 of which it got wrong first time round:
 

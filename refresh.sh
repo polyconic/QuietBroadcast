@@ -39,19 +39,23 @@ command -v magick >/dev/null || {
 before=$(python3 -c "import json;print(len(json.load(open('data/schedule.json'))['records']))" 2>/dev/null || echo 0)
 
 echo
-echo "1/4  albums ......... every release you've scrobbled, with play counts"
+echo "1/5  albums ......... every release you've scrobbled, with play counts"
 python3 tools/pull.py albums --user "$USER"
 
 echo
-echo "2/4  enrich ......... tracklists, durations and tags (cached; only new ones fetch)"
+echo "2/5  enrich ......... tracklists, durations and tags (cached; only new ones fetch)"
 python3 tools/pull.py enrich --min 2
 
 echo
-echo "3/4  artists ........ artist-level tags, to fill gaps where an album has none"
+echo "3/5  artists ........ artist-level tags, to fill gaps where an album has none"
 python3 tools/pull.py artists
 
 echo
-echo "4/4  schedule ....... filter the pool and extend the broadcast"
+echo "4/5  similar ........ who actually sits near whom, for the network graph"
+python3 tools/pull.py similar
+
+echo
+echo "5/5  schedule ....... filter the pool and extend the broadcast"
 python3 tools/schedule.py \
   --min-plays-per-track "$MIN_PLAYS_PER_TRACK" \
   --min-tracks "$MIN_TRACKS" \
