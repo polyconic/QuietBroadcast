@@ -13,3 +13,7 @@ Electronic-adjacent music only, drawn from a personal Last.fm library and filter
 to leave out anything most people have already heard.
 
 Static HTML. No build step, no dependencies, and as usual no tracking.
+
+## Contact
+
+[gregor.art@pm.me](mailto:gregor.art@pm.me)
