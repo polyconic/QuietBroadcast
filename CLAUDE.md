@@ -250,6 +250,13 @@ is reasonable — non-commercial, editorial, 800px cap, and every entry links ou
 but it rests on staying non-commercial and on being reachable, which is what the
 `gregor.art@pm.me` contact link is for. Keep it.
 
+Every footer also says **"Artwork belongs to its labels and artists"**. That notice
+grants nothing and is not a defence — it disclaims ownership and shows good faith, which
+is largely what decides whether a label sends a friendly email or something worse. The
+colophon is deliberately **inline text, not flex**: as a flex row it wrapped mid-phrase
+into a ragged grid on narrow screens, and a `white-space:nowrap` "fix" then pushed the
+page into horizontal scroll on a 375px screen.
+
 ## Theme
 
 Shared `localStorage` key `theme`, `light`/`dark`, dark by default, same as the other

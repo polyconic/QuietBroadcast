@@ -85,8 +85,10 @@ p.body a:hover{text-decoration-color:var(--fg)}
 footer{border-top:1px solid var(--line); padding:16px 0 30px; font-size:15px;
   color:var(--dim); display:flex; justify-content:space-between; gap:16px;
   flex-wrap:wrap; align-items:baseline; font-style:italic}
-.colophon{display:flex; gap:10px; align-items:baseline; font-style:normal;
-  font-size:14px; color:var(--faint)}
+/* inline, not flex - a flex row wraps mid-phrase on narrow screens and turns
+   into a ragged grid instead of a sentence */
+.colophon{font-style:normal; font-size:14px; color:var(--faint)}
+.colophon .dot{margin:0 .5em}
 .colophon a{color:var(--faint); text-decoration:none; transition:color .2s}
 .colophon a:hover{color:var(--fg)}
 .colophon .dot{opacity:.5}
@@ -114,7 +116,7 @@ footer button:hover{color:var(--fg)}
 
   <footer>
     <span id="line"></span>
-    <span class="colophon"><a href="https://www.last.fm" target="_blank" rel="noopener noreferrer">Data from Last.fm</a><span class="dot">·</span><a href="mailto:gregor.art@pm.me">Contact</a></span>
+    <span class="colophon"><a href="https://www.last.fm" target="_blank" rel="noopener noreferrer">Data from Last.fm</a><span class="dot">·</span><span class="rights">Artwork belongs to its labels and artists</span><span class="dot">·</span><a href="mailto:gregor.art@pm.me">Contact</a></span>
     <button id="theme" type="button">light</button>
   </footer>
 </div>
