@@ -23,8 +23,17 @@ block = floor((now - epoch) / 6h)
 record = records[ slots[block] ]
 ```
 
-Station time is UTC, like delilahsvault — everyone gets the same record at the same
-moment, and nothing is stored in the browser.
+**Station time is Chicago**, and a block is a Chicago calendar day plus a slot within
+it — deliberately *not* arithmetic from a fixed instant. That way a local day always
+holds exactly four slots, including the 23- and 25-hour days when the clocks move; fixed
+6h arithmetic drifts an hour twice a year. `tz` is written into `schedule.json` and both
+pages read it from there. `tools/schedule.py` uses `zoneinfo` and the pages use
+`Intl.DateTimeFormat` with `formatToParts`, and the two must agree on the block number
+or frozen slots land wrong. Display dates derive from the block number itself, so nothing
+converts back. The countdown binary-searches the next boundary rather than adding six
+hours, which is what makes it correct across a transition.
+
+Everyone gets the same record at the same moment, and nothing is stored in the browser.
 
 ## The one rule that matters
 
@@ -103,6 +112,19 @@ the network graph.
   fallback and filled 182 of 183 gaps. Only tags with 15+ votes are accepted.
 - Durations under 60s per track are wrong, not short — `clean()` blanks the number
   and keeps the record rather than dropping a good album over bad metadata.
+- **Last.fm often times only *some* of a record's tracks.** Summing those is confidently
+  wrong — Contract Labour read "four minutes" for a 28-minute record because one of its
+  four tracks had a duration. A runtime is only kept when *every* track is timed;
+  otherwise it is suppressed. 51 of 319 records show no runtime for this reason, and
+  `track.getInfo` does not fill the gaps — the data simply isn't there.
+- **Tags are crowd-written and often wrong, not merely vague.** `album.getInfo` returns
+  them unranked with no counts; `album.getTopTags` has counts but the crowd itself ranked
+  Contract Labour ambient(100), electronica(100) above Acid(66), techno(23). No endpoint
+  fixes that. `tidy_tags()` drops what isn't a genre (years, "loved", "catchy", radio
+  slugs, the artist's own name, free-text phrases) and sinks uninformative umbrellas
+  like "electronic" — on an electronic-only station that word says nothing. Where
+  Last.fm is simply wrong, `data/tag_overrides.json` maps `"Artist - Release"` to a tag
+  list and wins outright. That file is curation, not a workaround; expect it to grow.
 
 ## Pages
 

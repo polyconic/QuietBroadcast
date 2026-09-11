@@ -189,7 +189,39 @@ footer button:hover{color:var(--fg)}
 
 <script>
 (function(){
-  var EPOCH, SLOT;
+
+/* The station keeps Chicago time. A block is a Chicago calendar day plus a
+     slot within it, never arithmetic from a fixed instant - that way a local
+     day always holds exactly four slots, including the 23- and 25-hour days
+     when the clocks move. Display dates come straight from the block number,
+     so nothing has to be converted back. */
+  var TZ = "America/Chicago", EPOCH_DAY, PER_DAY;
+  var ZP = null;
+  function zparts(ms){
+    if(!ZP) ZP = new Intl.DateTimeFormat("en-US", {timeZone:TZ, hour12:false,
+      year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit"});
+    var o = {};
+    ZP.formatToParts(new Date(ms)).forEach(function(p){
+      if(p.type !== "literal") o[p.type] = parseInt(p.value,10);
+    });
+    if(o.hour === 24) o.hour = 0;
+    return o;
+  }
+  function blockAt(ms, hours){
+    var p = zparts(ms);
+    var day = (Date.UTC(p.year, p.month-1, p.day) - EPOCH_DAY) / 864e5;
+    return day * (24/hours) + Math.floor(p.hour / hours);
+  }
+  function blockDate(b){ return new Date(EPOCH_DAY + Math.floor(b/PER_DAY)*864e5) }
+  function blockSlot(b){ return ((b % PER_DAY) + PER_DAY) % PER_DAY }
+  function nextBoundary(ms, b, hours){        // binary search; DST-safe by construction
+    var lo = ms, hi = ms + 9*36e5;
+    for(var i=0;i<44;i++){
+      var mid = (lo + hi) / 2;
+      if(blockAt(mid, hours) > b) hi = mid; else lo = mid;
+    }
+    return hi;
+  }
 
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
     return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c] }) }
@@ -239,10 +271,12 @@ footer button:hover{color:var(--fg)}
     if(!r.ok) throw new Error("schedule.json missing - run tools/schedule.py");
     return r.json();
   }).then(function(sched){
-    EPOCH = Date.parse(sched.epoch + "T00:00:00Z");
-    SLOT  = sched.hours*36e5;
+    var ep = sched.epoch.split("-");
+    EPOCH_DAY = Date.UTC(+ep[0], +ep[1]-1, +ep[2]);
+    PER_DAY = 24 / sched.hours;
+    if(sched.tz) TZ = sched.tz;
 
-    var block = Math.floor((Date.now() - EPOCH)/SLOT);
+    var block = blockAt(Date.now(), sched.hours);
     var q = location.search.match(/[?&]preview=(-?\d+)/);
     var live = !q;
     if(q) block = parseInt(q[1],10);
@@ -250,10 +284,10 @@ footer button:hover{color:var(--fg)}
     if(block >= sched.slots.length) throw new Error("the schedule has run out - run tools/schedule.py");
 
     var rec = sched.records[ sched.slots[block] ];
-    var when = new Date(EPOCH + block*SLOT);
+    var when = blockDate(block);
     var weekday = when.toLocaleDateString("en-GB",{weekday:"long", timeZone:"UTC"});
     var date = when.toLocaleDateString("en-GB",{day:"numeric", month:"long", timeZone:"UTC"});
-    var p = period(when.getUTCHours());
+    var p = period(blockSlot(block) * sched.hours);
     var whenLine = p.indexOf("in the") === 0 ? weekday+", "+p : weekday+" "+p;
     whenLine += ", " + date;
 
@@ -300,8 +334,9 @@ footer button:hover{color:var(--fg)}
       img.onerror = function(){ document.getElementById("sleeve").classList.add("none") };
     }
 
+    var boundary = nextBoundary(Date.now(), block, sched.hours);
     function tick(){
-      var ms = (EPOCH + (block+1)*SLOT) - Date.now();
+      var ms = boundary - Date.now();
       var el = document.getElementById("next");
       if(ms <= 0){
         if(live){ location.reload(); return }

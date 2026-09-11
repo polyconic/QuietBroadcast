@@ -8,13 +8,15 @@
 adds to the pool without disturbing a single slot that has already aired.
 """
 import argparse, json, os, random, re, sys, time
-from datetime import datetime, timezone
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(HERE, "data")
 SCHED = os.path.join(DATA, "schedule.json")
 POOL = os.path.join(DATA, "albums.json")
 EPOCH = "2026-09-10"
+STATION_TZ = "America/Chicago"
 
 # Your own records stay off the station.
 EXCLUDE_ARTISTS = {"gregor egan", "goose"}
@@ -65,6 +67,40 @@ def is_electronic(tags):
     return bool(ELECTRONIC_TAGS & set(tags))
 
 
+# Last.fm tags are crowd-written, so they arrive full of years, personal notes and
+# radio-station slugs, in no useful order. Junk is dropped; genuinely uninformative
+# umbrellas sink to the back (on an electronic-only station "electronic" says nothing).
+TAG_JUNK = {
+    "loved", "favorites", "favourites", "favorite", "favourite", "seen live",
+    "lastfmsc", "fm4", "albums i own", "vinyl", "cd", "mp3", "spotify",
+    "catchy", "awesome", "cool", "good", "great", "best", "banger", "bangers",
+    "music", "song", "songs", "albums", "album", "check out", "want to see",
+    "under 2000 listeners", "my gang 09", "usa", "uk", "german", "british",
+}
+TAG_SINK = {"electronic", "electronica", "dance", "experimental", "instrumental",
+            "alternative", "indie", "new age", "chill", "electronic music"}
+
+
+def tidy_tags(tags, artist):
+    """Drop what isn't a genre, then float the specific above the generic."""
+    artist_l = artist.lower()
+    out = []
+    for t in tags:
+        t = (t or "").strip()
+        low = t.lower()
+        if not low or low in TAG_JUNK:
+            continue
+        if re.fullmatch(r"\d{2,4}s?", low):          # 1999, 90s, 1990s
+            continue
+        if low == artist_l or artist_l in low:        # the artist's own name
+            continue
+        if len(low) > 24 or len(low.split()) > 3:     # "has me dancing even now"
+            continue
+        out.append(low)
+    # stable: keeps Last.fm's order inside each group, sinks the umbrellas
+    return sorted(out, key=lambda t: 1 if t in TAG_SINK else 0)[:6]
+
+
 def family(r):
     t = set(r.get("tags") or [])
     for name, tags in GENRE_FAMILIES.items():
@@ -113,9 +149,16 @@ def clean(pool, max_minutes):
     for r in pool:
         nt = len(r.get("tracks") or [])
         secs = r.get("secs") or 0
+        # Last.fm often times only some of a record's tracks. Summing those gives a
+        # total that is confidently wrong (4 min for a 28 min record), so a runtime
+        # is only kept when every track is timed.
+        timed = [t for t in (r.get("tracks") or []) if t.get("secs")]
+        if nt and len(timed) < nt:
+            r = dict(r, secs=0)
+            secs = 0
         # under a minute a track means the durations are wrong, not that the
         # record is short - keep the record, drop the bogus number
-        if nt and secs and secs / nt < 60:
+        elif nt and secs and secs / nt < 60:
             r = dict(r, secs=0, tracks=[dict(t, secs=0) for t in r["tracks"]])
             secs = 0
         if secs and secs > max_minutes * 60:
@@ -135,8 +178,11 @@ def clean(pool, max_minutes):
 
 
 def now_block(epoch, hours):
-    t0 = datetime.fromisoformat(epoch).replace(tzinfo=timezone.utc).timestamp()
-    return int((time.time() - t0) // (hours * 3600))
+    """Blocks are anchored to Chicago wall-clock time, so each local day holds
+    exactly 24/hours slots whether or not the clocks moved that morning."""
+    now = datetime.now(ZoneInfo(STATION_TZ))
+    days = (now.date() - date.fromisoformat(epoch)).days
+    return days * (24 // hours) + now.hour // hours
 
 
 def main():
@@ -227,9 +273,26 @@ def main():
     if os.path.exists(SCHED):
         sched = json.load(open(SCHED))
     else:
-        sched = {"epoch": EPOCH, "hours": HOURS, "records": [], "slots": []}
+        sched = {"epoch": EPOCH, "hours": HOURS, "tz": STATION_TZ, "records": [], "slots": []}
+
+    ov_path = os.path.join(DATA, "tag_overrides.json")
+    overrides = json.load(open(ov_path)) if os.path.exists(ov_path) else {}
 
     records = sched["records"]
+    # Existing records get re-tidied too. This rewrites fields in place and never
+    # touches order or membership, so slot indexes stay valid.
+    for rec in records:
+        rec["tags"] = tidy_tags(rec.get("tags") or [], rec.get("artist") or "")
+        ov = overrides.get(rec["artist"] + " - " + rec["release"])
+        if ov:
+            rec["tags"] = ov
+        tracks = rec.get("tracks") or []
+        timed = [t for t in tracks if t.get("secs")]
+        if tracks and len(timed) < len(tracks):
+            rec["secs"] = 0                     # partial timings understate the record
+        elif tracks:
+            total = sum(t["secs"] for t in tracks)
+            rec["secs"] = 0 if total / len(tracks) < 60 else total
     index = {key(r): i for i, r in enumerate(records)}
 
     # Append-only: new records join the end, existing ones keep their index.
@@ -238,7 +301,12 @@ def main():
         k = key(r)
         if k not in index:
             index[k] = len(records)
-            records.append({f: r.get(f) for f in FIELDS})
+            rec = {f: r.get(f) for f in FIELDS}
+            rec["tags"] = tidy_tags(rec.get("tags") or [], rec.get("artist") or "")
+            ov = overrides.get(rec["artist"] + " - " + rec["release"])
+            if ov:
+                rec["tags"] = ov
+            records.append(rec)
             added += 1
     live = set(index[key(r)] for r in pool)
 
@@ -266,6 +334,7 @@ def main():
             rnd.shuffle(queue)
         slots.append(queue.pop())
 
+    sched["tz"] = STATION_TZ
     sched["records"] = records
     sched["slots"] = slots
     json.dump(sched, open(SCHED, "w"), ensure_ascii=False, separators=(",", ":"))
